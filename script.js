@@ -1,5 +1,4 @@
 const wheel = document.querySelector('.wheel');
-const ccvcWords = [
  const ccvcWords = [
   'brag', 'clam', 'drop', 'flag', 'grip', 
   'plan', 'slip', 'trap', 'blot', 'clap',
@@ -21,7 +20,7 @@ const ccvcWords = [
 ];
 
 
-cvccWords.forEach((word, index) => {
+ccvcWords.forEach((word, index) => {
   const slot = document.createElement('div');
   slot.className = 'slot';
   
