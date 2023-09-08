@@ -12,12 +12,12 @@ body {
 .wheel {
   display: flex;
   flex-wrap: wrap;
-  width: 700px;
+  width: 400px;
 }
 
 .slot {
-  width: 700px;
-  height: 700px;
+  width: 400px;
+  height: 400px;
   justify-content: center;
   align-items: center;
   border: 1px solid black;
