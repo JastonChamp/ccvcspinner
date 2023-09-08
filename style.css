@@ -1,0 +1,36 @@
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  background-color: #f0f0f0;
+}
+
+.wheel {
+  display: flex;
+  flex-wrap: wrap;
+  width: 700px;
+}
+
+.slot {
+  width: 700px;
+  height: 700px;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid black;
+  background-color: white;
+  display: none;
+  font-size: 72px;
+  transition: all 0.5s ease-in-out;
+}
+
+.vowel {
+  color: red;
+}
+
+button {
+  margin-top: 20px;
+}
