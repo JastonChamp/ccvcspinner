@@ -1,7 +1,25 @@
 const wheel = document.querySelector('.wheel');
-const cvccWords = [
-  'bend', 'fast', 'milk', 'jump', 'sink', 'wind', 'lost', 'sand', 'melt',
-  // ... (add more CVCC words here)
+const ccvcWords = [
+ const ccvcWords = [
+  'brag', 'clam', 'drop', 'flag', 'grip', 
+  'plan', 'slip', 'trap', 'blot', 'clap',
+  'drum', 'flap', 'glum', 'plug',
+  'skim', 'twin',  'brim', 'clot', 'drip',
+  'frog', 'swim', 
+   'blip', 'chip',  'twig',
+  'blab', 'clod', 'flit', 'grit',  'plot', 'scam',
+  'trim', 'bran', 'chop', 'drag', 'flop', 'glim', 
+  'prod', 'slam', 'twit', 
+  'swan', 'sled', 'swig', 'slug',  'slab', 'swop', 'slop', 'swat',
+  'swot', 'brat', 'clad',  'flog', 'grub', 
+   'plum',  'spit', 'trot',  'bloc', 
+  'plop', 
+  'spin', 
+'scum', 
+  'blow', 'claw',  'grit', 
+  'plug',  'skim', 'twin', 
+];
+
 ];
 
 cvccWords.forEach((word, index) => {
