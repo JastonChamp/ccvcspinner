@@ -15,7 +15,7 @@ const ccvcWords = [
   'plop', 
   'spin', 
 'scum', 
-  'blow', 'claw',  'grit', 
+   'grit', 
   'plug',  'skim', 'twin', 
 ];
 
