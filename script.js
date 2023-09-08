@@ -20,7 +20,6 @@ const ccvcWords = [
   'plug',  'skim', 'twin', 
 ];
 
-];
 
 cvccWords.forEach((word, index) => {
   const slot = document.createElement('div');
