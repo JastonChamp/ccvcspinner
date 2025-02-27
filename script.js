@@ -416,6 +416,14 @@
     updateGamificationPanel();
   };
 
+  /*** Check Completion ***/
+  const checkCompletion = (dropZone, totalWords) => {
+    const droppedWords = dropZone.children.length;
+    elements.submitBtn.disabled = droppedWords !== totalWords;
+    elements.submitBtn.style.opacity = elements.submitBtn.disabled ? "0.5" : "1";
+    console.log(`Check Completion - Dropped: ${droppedWords}, Total: ${totalWords}, Button Enabled: ${!elements.submitBtn.disabled}`);
+  };
+
   /*** Display Puzzle ***/
   const displayCurrentPuzzle = () => {
     elements.puzzleContainer.innerHTML = "";
@@ -449,21 +457,10 @@
     container.appendChild(wordBank);
     container.appendChild(dropZone);
 
-    const checkCompletion = () => {
-      const totalWords = puzzle.correct.length;
-      const droppedWords = dropZone.children.length;
-      elements.submitBtn.disabled = droppedWords !== totalWords;
-      elements.submitBtn.style.opacity = elements.submitBtn.disabled ? "0.5" : "1";
-      console.log(`Check Completion - Dropped: ${droppedWords}, Total: ${totalWords}, Button Enabled: ${!elements.submitBtn.disabled}`);
-    };
-
     [wordBank, dropZone].forEach(zone => {
       zone.addEventListener("dragover", handleDragOver);
       zone.addEventListener("dragleave", handleDragLeave);
-      zone.addEventListener("drop", (e) => {
-        handleDrop(e);
-        checkCompletion();
-      });
+      zone.addEventListener("drop", (e) => handleDrop(e, dropZone, puzzle.correct.length));
     });
 
     if (!puzzle.submitted) {
@@ -486,7 +483,7 @@
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             dropZone.appendChild(wordDiv);
-            checkCompletion();
+            checkCompletion(dropZone, puzzle.correct.length);
             wordDiv.focus();
           }
         });
@@ -503,7 +500,7 @@
           if (e.key === "Backspace") {
             e.preventDefault();
             wordBank.appendChild(wordDiv);
-            checkCompletion();
+            checkCompletion(dropZone, puzzle.correct.length);
             wordDiv.focus();
           }
         });
@@ -520,7 +517,7 @@
     elements.puzzleContainer.appendChild(container);
     timeLeft = 30;
     startTimer();
-    checkCompletion();
+    checkCompletion(dropZone, puzzle.correct.length);
     elements.progress.textContent = `Question ${currentPuzzleIndex + 1} of ${sessionLength}${document.getElementById("timer-mode").checked ? ` - Time: ${timeLeft}s` : ""}`;
     elements.score.textContent = `Score: ${score}`;
     elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
@@ -549,7 +546,7 @@
       e.currentTarget.classList.remove("active");
     }
   };
-  const handleDrop = (e) => {
+  const handleDrop = (e, dropZone, totalWords) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.currentTarget.classList.contains("drop-zone") && draggedItem) {
@@ -560,6 +557,7 @@
       wordBank.setAttribute("aria-label", `Word Bank with ${wordBank.children.length} words remaining`);
       gsap.fromTo(draggedItem, { opacity: 0 }, { duration: 0.3, opacity: 1 });
       console.log("Dropped:", draggedItem.textContent, "into drop zone");
+      checkCompletion(dropZone, totalWords);
     }
   };
 
@@ -598,6 +596,8 @@
       validDropZone.appendChild(pointerDragItem);
       gsap.fromTo(pointerDragItem, { opacity: 0 }, { duration: 0.3, opacity: 1 });
       console.log("Pointer dropped:", pointerDragItem.textContent);
+      const puzzle = puzzles[currentPuzzleIndex];
+      checkCompletion(validDropZone, puzzle.correct.length);
     }
     pointerDragItem.style.position = "";
     pointerDragItem.style.left = "";
