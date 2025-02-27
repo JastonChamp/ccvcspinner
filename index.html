@@ -2,12 +2,71 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>CCVC Word Spinner</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Order Adventure</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
-  <div class="wheel"></div>
-  <button id="spinButton">Spin</button>
-  <script src="script.js"></script>
+  <header>
+    <h1>Word Order Adventure</h1>
+    <p class="instructions">
+      Drag and drop the words below to form a correct sentence or question. 
+      Start with a capital letter and end with a full stop or question mark.
+      <span style="font-size: 0.8em; color: var(--accent-color);">(Tap and hold on touch devices)</span>
+    </p>
+    <div class="controls">
+      <label for="level-select">Select Level:</label>
+      <select id="level-select">
+        <option value="p1">Primary 1</option>
+        <option value="p2">Primary 2</option>
+        <option value="p3" selected>Primary 3</option>
+        <option value="p4">Primary 4</option>
+        <option value="p5">Primary 5</option>
+        <option value="p6">Primary 6</option>
+      </select>
+      <label><input type="checkbox" id="timer-mode"> Timer Mode (30s/question)</label>
+      <button id="listen-instructions-btn" class="instruction-btn">Listen Instructions</button>
+      <button id="fullscreen-btn" class="instruction-btn">Fullscreen</button>
+      <button id="theme-toggle" class="instruction-btn">Toggle Theme</button>
+    </div>
+  </header>
+  
+  <main class="game-container" id="game-container">
+    <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite"></section>
+    <section id="progress-bar-container">
+      <div id="progress-bar"></div>
+    </section>
+    <section id="gamification-panel">
+      <p id="xp-display">XP: 0</p>
+      <p id="streak-display">Streak: 0</p>
+      <div id="badges-container">Badges: <span id="badges-list"></span></div>
+    </section>
+    <nav class="nav-buttons">
+      <button id="prev-btn">Previous</button>
+      <button id="hint-btn">Show Hint</button>
+      <button id="submit-btn">Submit Answer</button>
+      <button id="next-btn">Next</button>
+    </nav>
+    <div class="feedback">
+      <p id="progress"></p>
+      <p id="score"></p>
+      <p id="hint"></p>
+      <p id="success-message" aria-live="polite"></p>
+    </div>
+    <button id="reset-btn">Reset Quiz</button>
+  </main>
+
+  <audio id="success-sound" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
+  <audio id="error-sound" src="https://www.soundjay.com/buttons/beep-02.mp3" preload="auto"></audio>
+  <script src="script.js" defer></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
+      script.onload = () => console.log("GSAP loaded");
+      document.body.appendChild(script);
+    });
+  </script>
 </body>
 </html>
