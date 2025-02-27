@@ -449,17 +449,22 @@
     container.appendChild(wordBank);
     container.appendChild(dropZone);
 
+    const checkCompletion = () => {
+      const totalWords = puzzle.correct.length;
+      const droppedWords = dropZone.children.length;
+      elements.submitBtn.disabled = droppedWords !== totalWords;
+      elements.submitBtn.style.opacity = elements.submitBtn.disabled ? "0.5" : "1";
+      console.log(`Check Completion - Dropped: ${droppedWords}, Total: ${totalWords}, Button Enabled: ${!elements.submitBtn.disabled}`);
+    };
+
     [wordBank, dropZone].forEach(zone => {
       zone.addEventListener("dragover", handleDragOver);
       zone.addEventListener("dragleave", handleDragLeave);
-      zone.addEventListener("drop", handleDrop);
+      zone.addEventListener("drop", (e) => {
+        handleDrop(e);
+        checkCompletion();
+      });
     });
-
-    const checkCompletion = () => {
-      const totalWords = wordBank.children.length + dropZone.children.length;
-      elements.submitBtn.disabled = dropZone.children.length !== totalWords;
-      elements.submitBtn.style.opacity = elements.submitBtn.disabled ? "0.5" : "1";
-    };
 
     if (!puzzle.submitted) {
       const wordsShuffled = shuffle([...puzzle.correct]);
@@ -527,9 +532,11 @@
     draggedItem = e.target;
     e.target.style.opacity = "0.5";
     e.dataTransfer.setData("text/plain", e.target.textContent);
+    console.log("Drag started:", e.target.textContent);
   };
   const handleDragEnd = (e) => {
     e.target.style.opacity = "1";
+    console.log("Drag ended:", e.target.textContent);
   };
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -552,6 +559,7 @@
       const wordBank = e.currentTarget.parentElement.querySelector(".word-bank");
       wordBank.setAttribute("aria-label", `Word Bank with ${wordBank.children.length} words remaining`);
       gsap.fromTo(draggedItem, { opacity: 0 }, { duration: 0.3, opacity: 1 });
+      console.log("Dropped:", draggedItem.textContent, "into drop zone");
     }
   };
 
@@ -565,6 +573,7 @@
     const rect = pointerDragItem.getBoundingClientRect();
     pointerOffsetX = e.clientX - rect.left;
     pointerOffsetY = e.clientY - rect.top;
+    console.log("Pointer down:", pointerDragItem.textContent);
   };
   const handlePointerMove = (e) => {
     if (!pointerDragItem) return;
@@ -588,6 +597,7 @@
     if (validDropZone) {
       validDropZone.appendChild(pointerDragItem);
       gsap.fromTo(pointerDragItem, { opacity: 0 }, { duration: 0.3, opacity: 1 });
+      console.log("Pointer dropped:", pointerDragItem.textContent);
     }
     pointerDragItem.style.position = "";
     pointerDragItem.style.left = "";
@@ -670,12 +680,20 @@
   };
 
   const submitAnswer = () => {
+    console.log("Submit Answer clicked");
     const currentContainer = elements.puzzleContainer.querySelector(".sentence-container");
-    if (!currentContainer) return;
+    if (!currentContainer) {
+      console.log("No sentence container found");
+      return;
+    }
     const dropZone = currentContainer.querySelector(".drop-zone");
     const userWords = Array.from(dropZone.children).map(word => word.textContent);
     const puzzle = puzzles[currentPuzzleIndex];
-    if (userWords.length !== puzzle.correct.length) return;
+    console.log("User words:", userWords, "Correct words:", puzzle.correct);
+    if (userWords.length !== puzzle.correct.length) {
+      console.log("Incomplete sentence - not submitting");
+      return;
+    }
 
     puzzle.submitted = true;
     const userWordsAdjusted = userWords.map((word, idx) => 
@@ -684,6 +702,7 @@
     const needsPunctuation = !/[.!?]/.test(userWordsAdjusted[userWordsAdjusted.length - 1]);
     puzzle.userAnswer = userWordsAdjusted;
     const isCorrect = userWordsAdjusted.join(" ") === puzzle.correct.join(" ");
+    console.log("Adjusted user answer:", userWordsAdjusted.join(" "), "Is correct:", isCorrect);
 
     Array.from(dropZone.children).forEach((wordElem, index) => {
       wordElem.classList.remove("correct", "incorrect");
@@ -767,7 +786,10 @@
     speak(document.querySelector("p.instructions").textContent);
   });
   document.getElementById("hint-btn").addEventListener("click", showHint);
-  elements.submitBtn.addEventListener("click", submitAnswer);
+  elements.submitBtn.addEventListener("click", (e) => {
+    console.log("Submit button clicked");
+    submitAnswer();
+  });
   document.getElementById("next-btn").addEventListener("click", nextPuzzle);
   document.getElementById("prev-btn").addEventListener("click", prevPuzzle);
   document.getElementById("reset-btn").addEventListener("click", resetQuiz);
