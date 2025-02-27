@@ -15,20 +15,20 @@
     submitBtn: document.getElementById("submit-btn")
   };
 
-  /*** Speech API Utility ***/
+  // Speech API Utility
   function speak(text) {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       const setVoice = () => {
         const voices = window.speechSynthesis.getVoices();
-        let preferredVoice = voices.find(v => v.name === "Google US English") || 
-                            voices.find(v => v.lang === "en-US" && v.default) || 
+        let preferredVoice = voices.find(v => v.name.includes("Google US English")) || 
+                            voices.find(v => v.lang === "en-US" && v.name.includes("Natural")) || 
                             voices[0];
         utterance.voice = preferredVoice;
         console.log("Voice used:", preferredVoice?.name || "None available");
       };
       if (window.speechSynthesis.getVoices().length) setVoice();
-      else window.speechSynthesis.addEventListener('voiceschanged', setVoice);
+      else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true });
       utterance.rate = 1;
       utterance.pitch = 1;
       window.speechSynthesis.speak(utterance);
@@ -361,26 +361,19 @@
     "The dedicated student looked forward to the future with optimism and a thirst for knowledge."
   ];
 
-  // Session and game variables
+  // Game variables
   const sessionLength = 5;
   let puzzles = [];
   let currentPuzzleIndex = 0;
   let score = 0;
   let currentLevel = 'p3';
-  let xp = 0, streak = 0, badges = [];
+  let xp = 0, streak = parseInt(localStorage.getItem('streak')) || 0, badges = [];
   let timeLeft = 30, timerId = null;
+  let hintCount = 0;
+  let currentDropZone = null;
 
-  /*** Utilities ***/
-  const shuffle = (array) => {
-    let currentIndex = array.length, randomIndex;
-    while (currentIndex !== 0) {
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-    return array;
-  };
-
+  // Utilities
+  const shuffle = array => array.sort(() => Math.random() - 0.5);
   const debounce = (func, wait) => {
     let timeout;
     return (...args) => {
@@ -389,42 +382,38 @@
     };
   };
 
-  const getSentencesForLevel = (level) => {
-    switch (level) {
-      case 'p1': return sentencesP1;
-      case 'p2': return sentencesP2;
-      case 'p3': return sentencesP3;
-      case 'p4': return sentencesP4;
-      case 'p5': return sentencesP5;
-      case 'p6': return sentencesP6;
-      default: return sentencesP3;
-    }
-  };
+  const getSentencesForLevel = level => ({
+    p1: sentencesP1, p2: sentencesP2, p3: sentencesP3,
+    p4: sentencesP4, p5: sentencesP5, p6: sentencesP6
+  }[level] || sentencesP3);
 
-  /*** Puzzle Generation ***/
+  // Puzzle Generation
   const generatePuzzles = () => {
     const sentencePool = getSentencesForLevel(currentLevel);
     const selectedSentences = shuffle([...sentencePool]).slice(0, sessionLength);
     puzzles = selectedSentences.map(sentence => ({
       correct: sentence.split(" "),
       submitted: false,
-      userAnswer: []
+      userAnswer: [],
+      attempts: 0
     }));
     currentPuzzleIndex = 0;
     score = 0;
-    xp = 0; streak = 0; badges = [];
+    xp = 0; hintCount = 0;
     updateGamificationPanel();
   };
 
-  /*** Check Completion ***/
-  const checkCompletion = (dropZone, totalWords) => {
-    const droppedWords = dropZone.children.length;
+  // Check Completion
+  const checkCompletion = () => {
+    if (!currentDropZone) return;
+    const totalWords = puzzles[currentPuzzleIndex].correct.length;
+    const droppedWords = currentDropZone.children.length;
     elements.submitBtn.disabled = droppedWords !== totalWords;
     elements.submitBtn.style.opacity = elements.submitBtn.disabled ? "0.5" : "1";
     console.log(`Check Completion - Dropped: ${droppedWords}, Total: ${totalWords}, Button Enabled: ${!elements.submitBtn.disabled}`);
   };
 
-  /*** Display Puzzle ***/
+  // Display Puzzle
   const displayCurrentPuzzle = () => {
     elements.puzzleContainer.innerHTML = "";
     elements.hint.textContent = "";
@@ -432,7 +421,8 @@
     stopTimer();
 
     if (currentPuzzleIndex >= puzzles.length) {
-      elements.puzzleContainer.innerHTML = "<p>Session complete!</p>";
+      elements.puzzleContainer.innerHTML = "<p>Well done! Session complete!</p>";
+      speak("Well done! You finished the session!");
       return;
     }
 
@@ -441,7 +431,7 @@
     container.className = "sentence-container";
 
     const header = document.createElement("h3");
-    header.textContent = `Question ${currentPuzzleIndex + 1} of ${sessionLength}`;
+    header.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}`;
     container.appendChild(header);
 
     const wordBank = document.createElement("div");
@@ -449,23 +439,23 @@
     wordBank.setAttribute("aria-label", "Word Bank");
     wordBank.setAttribute("role", "list");
 
-    const dropZone = document.createElement("div");
-    dropZone.className = "drop-zone";
-    dropZone.setAttribute("aria-label", "Drop Zone");
-    dropZone.setAttribute("role", "list");
+    currentDropZone = document.createElement("div");
+    currentDropZone.className = "drop-zone";
+    currentDropZone.setAttribute("aria-label", "Drop Zone");
+    currentDropZone.setAttribute("role", "list");
 
     container.appendChild(wordBank);
-    container.appendChild(dropZone);
+    container.appendChild(currentDropZone);
 
-    [wordBank, dropZone].forEach(zone => {
+    [wordBank, currentDropZone].forEach(zone => {
       zone.addEventListener("dragover", handleDragOver);
       zone.addEventListener("dragleave", handleDragLeave);
-      zone.addEventListener("drop", (e) => handleDrop(e, dropZone, puzzle.correct.length));
+      zone.addEventListener("drop", handleDrop);
     });
 
     if (!puzzle.submitted) {
       const wordsShuffled = shuffle([...puzzle.correct]);
-      wordsShuffled.forEach((word, idx) => {
+      wordsShuffled.forEach(word => {
         const wordDiv = document.createElement("div");
         wordDiv.className = "word";
         wordDiv.setAttribute("role", "listitem");
@@ -482,8 +472,8 @@
         wordDiv.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            dropZone.appendChild(wordDiv);
-            checkCompletion(dropZone, puzzle.correct.length);
+            currentDropZone.appendChild(wordDiv);
+            checkCompletion();
             wordDiv.focus();
           }
         });
@@ -496,44 +486,28 @@
         wordDiv.textContent = word;
         wordDiv.classList.add(word === puzzle.correct[index] ? "correct" : "incorrect");
         wordDiv.tabIndex = 0;
-        wordDiv.addEventListener("keydown", (e) => {
-          if (e.key === "Backspace") {
-            e.preventDefault();
-            wordBank.appendChild(wordDiv);
-            checkCompletion(dropZone, puzzle.correct.length);
-            wordDiv.focus();
-          }
-        });
-        dropZone.appendChild(wordDiv);
-      });
-      puzzle.correct.forEach(word => {
-        const wordDiv = document.createElement("div");
-        wordDiv.className = "word";
-        wordDiv.textContent = word;
-        wordBank.appendChild(wordDiv);
+        currentDropZone.appendChild(wordDiv);
       });
     }
 
     elements.puzzleContainer.appendChild(container);
     timeLeft = 30;
     startTimer();
-    checkCompletion(dropZone, puzzle.correct.length);
-    elements.progress.textContent = `Question ${currentPuzzleIndex + 1} of ${sessionLength}${document.getElementById("timer-mode").checked ? ` - Time: ${timeLeft}s` : ""}`;
+    checkCompletion();
+    elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}${document.getElementById("timer-mode").checked ? ` - Time: ${timeLeft}s` : ""}`;
     elements.score.textContent = `Score: ${score}`;
     elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
   };
 
-  /*** Drag-and-Drop Handlers ***/
+  // Drag-and-Drop Handlers
   let draggedItem = null;
   const handleDragStart = (e) => {
     draggedItem = e.target;
     e.target.style.opacity = "0.5";
     e.dataTransfer.setData("text/plain", e.target.textContent);
-    console.log("Drag started:", e.target.textContent);
   };
   const handleDragEnd = (e) => {
     e.target.style.opacity = "1";
-    console.log("Drag ended:", e.target.textContent);
   };
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -546,18 +520,14 @@
       e.currentTarget.classList.remove("active");
     }
   };
-  const handleDrop = (e, dropZone, totalWords) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.currentTarget.classList.contains("drop-zone") && draggedItem) {
       e.currentTarget.classList.remove("active");
       e.currentTarget.appendChild(draggedItem);
-      e.currentTarget.setAttribute("aria-label", `Drop Zone with ${e.currentTarget.children.length} words`);
-      const wordBank = e.currentTarget.parentElement.querySelector(".word-bank");
-      wordBank.setAttribute("aria-label", `Word Bank with ${wordBank.children.length} words remaining`);
-      gsap.fromTo(draggedItem, { opacity: 0 }, { duration: 0.3, opacity: 1 });
-      console.log("Dropped:", draggedItem.textContent, "into drop zone");
-      checkCompletion(dropZone, totalWords);
+      gsap.fromTo(draggedItem, { opacity: 0, scale: 0.8 }, { duration: 0.3, opacity: 1, scale: 1 });
+      checkCompletion();
     }
   };
 
@@ -571,7 +541,6 @@
     const rect = pointerDragItem.getBoundingClientRect();
     pointerOffsetX = e.clientX - rect.left;
     pointerOffsetY = e.clientY - rect.top;
-    console.log("Pointer down:", pointerDragItem.textContent);
   };
   const handlePointerMove = (e) => {
     if (!pointerDragItem) return;
@@ -594,10 +563,9 @@
     }
     if (validDropZone) {
       validDropZone.appendChild(pointerDragItem);
-      gsap.fromTo(pointerDragItem, { opacity: 0 }, { duration: 0.3, opacity: 1 });
-      console.log("Pointer dropped:", pointerDragItem.textContent);
-      const puzzle = puzzles[currentPuzzleIndex];
-      checkCompletion(validDropZone, puzzle.correct.length);
+      gsap.fromTo(pointerDragItem, { opacity: 0, scale: 0.8 }, { duration: 0.3, opacity: 1, scale: 1 });
+      currentDropZone = validDropZone;
+      checkCompletion();
     }
     pointerDragItem.style.position = "";
     pointerDragItem.style.left = "";
@@ -605,28 +573,17 @@
     pointerDragItem.style.zIndex = "";
     pointerDragItem = null;
   };
-  const handlePointerCancel = (e) => {
-    if (pointerDragItem) {
-      pointerDragItem.style.opacity = "1";
-      pointerDragItem.style.position = "";
-      pointerDragItem.style.left = "";
-      pointerDragItem.style.top = "";
-      pointerDragItem.style.zIndex = "";
-      pointerDragItem = null;
-    }
-  };
   if (window.PointerEvent) {
     document.addEventListener("pointermove", debounce(handlePointerMove, 10));
     document.addEventListener("pointerup", handlePointerUp);
-    document.addEventListener("pointercancel", handlePointerCancel);
   }
 
-  /*** Timer Logic ***/
+  // Timer Logic
   const startTimer = () => {
     if (!document.getElementById("timer-mode").checked) return;
     timerId = setInterval(() => {
       timeLeft--;
-      elements.progress.textContent = `Question ${currentPuzzleIndex + 1} of ${sessionLength} - Time: ${timeLeft}s`;
+      elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength} - Time: ${timeLeft}s`;
       if (timeLeft <= 0) {
         clearInterval(timerId);
         submitAnswer();
@@ -636,11 +593,12 @@
   };
   const stopTimer = () => clearInterval(timerId);
 
-  /*** Gamification ***/
+  // Gamification
   function updateGamificationPanel() {
     elements.xpDisplay.textContent = `XP: ${xp}`;
     elements.streakDisplay.textContent = `Streak: ${streak}`;
     elements.badgesList.textContent = badges.join(', ');
+    localStorage.setItem('streak', streak);
   }
 
   function displayConfetti() {
@@ -658,42 +616,37 @@
     setTimeout(() => confettiContainer.remove(), 5000);
   }
   function getRandomColor() {
-    const colors = ['#1abc9c', '#3498db', '#9b59b6', '#e74c3c', '#f39c12'];
-    return colors[Math.floor(Math.random() * colors.length)];
+    return ['#ff6f61', '#ff9f1c', '#ffcc00', '#98fb98', '#40c4ff'][Math.floor(Math.random() * 5)];
   }
 
   function animateSuccessMessage() {
-    gsap.set(elements.successMessage, { scale: 0, opacity: 1 });
-    gsap.to(elements.successMessage, { duration: 0.6, scale: 1, ease: "bounce.out" });
+    gsap.fromTo(elements.successMessage, { scale: 0, opacity: 0 }, { duration: 0.6, scale: 1, opacity: 1, ease: "bounce.out" });
   }
 
-  /*** Hint & Submission ***/
+  // Hint & Submission
   const showHint = () => {
     const puzzle = puzzles[currentPuzzleIndex];
-    if (!puzzle.submitted) {
-      elements.hint.textContent = `Hint: The sentence begins with "${puzzle.correct[0]}".`;
+    if (hintCount < 2 && !puzzle.submitted) {
+      hintCount++;
+      elements.hint.textContent = `Hint: Start with "${puzzle.correct[0]}"`;
+      speak(`Hint: Start with ${puzzle.correct[0]}`);
+      xp -= 2;
+      updateGamificationPanel();
+    } else if (puzzle.submitted) {
+      const correctCount = puzzle.userAnswer.reduce((count, word, idx) => word === puzzle.correct[idx] ? count + 1 : count, 0);
+      elements.hint.textContent = `You got ${correctCount} out of ${puzzle.correct.length} words right!`;
     } else {
-      const correctCount = puzzle.userAnswer.reduce((count, word, idx) => 
-        word === puzzle.correct[idx] ? count + 1 : count, 0);
-      elements.hint.textContent = `Partial Feedback: ${correctCount} out of ${puzzle.correct.length} words are correctly placed.`;
+      elements.hint.textContent = "No more hints left!";
     }
   };
 
   const submitAnswer = () => {
     console.log("Submit Answer clicked");
-    const currentContainer = elements.puzzleContainer.querySelector(".sentence-container");
-    if (!currentContainer) {
-      console.log("No sentence container found");
-      return;
-    }
-    const dropZone = currentContainer.querySelector(".drop-zone");
-    const userWords = Array.from(dropZone.children).map(word => word.textContent);
     const puzzle = puzzles[currentPuzzleIndex];
-    console.log("User words:", userWords, "Correct words:", puzzle.correct);
-    if (userWords.length !== puzzle.correct.length) {
-      console.log("Incomplete sentence - not submitting");
-      return;
-    }
+    puzzle.attempts++;
+    if (!currentDropZone) return;
+    const userWords = Array.from(currentDropZone.children).map(word => word.textContent);
+    if (userWords.length !== puzzle.correct.length) return;
 
     puzzle.submitted = true;
     const userWordsAdjusted = userWords.map((word, idx) => 
@@ -702,9 +655,8 @@
     const needsPunctuation = !/[.!?]/.test(userWordsAdjusted[userWordsAdjusted.length - 1]);
     puzzle.userAnswer = userWordsAdjusted;
     const isCorrect = userWordsAdjusted.join(" ") === puzzle.correct.join(" ");
-    console.log("Adjusted user answer:", userWordsAdjusted.join(" "), "Is correct:", isCorrect);
 
-    Array.from(dropZone.children).forEach((wordElem, index) => {
+    Array.from(currentDropZone.children).forEach((wordElem, index) => {
       wordElem.classList.remove("correct", "incorrect");
       wordElem.classList.add(wordElem.textContent === puzzle.correct[index] ? "correct" : "incorrect");
     });
@@ -719,27 +671,27 @@
       }
       document.getElementById("success-sound").play();
       speak(`Great job! The sentence is: ${puzzle.correct.join(" ")}`);
-      elements.successMessage.textContent = "✓ Correct!";
+      elements.successMessage.textContent = "✓ Yay! You got it!";
       animateSuccessMessage();
       displayConfetti();
       setTimeout(() => elements.successMessage.textContent = "", 3000);
     } else {
       document.getElementById("error-sound").play();
       streak = 0;
-      let feedback = "That's not quite right.";
-      if (needsPunctuation) feedback += " Remember to end with a period or question mark.";
+      let feedback = "Oops, not quite!";
+      if (needsPunctuation) feedback += " Add a period or question mark.";
       speak(`${feedback} The correct sentence is: ${puzzle.correct.join(" ")}`);
       elements.hint.textContent = feedback;
     }
-    stopTimer();
     updateGamificationPanel();
     displayCurrentPuzzle();
   };
 
-  /*** Navigation ***/
+  // Navigation
   const nextPuzzle = () => {
     if (currentPuzzleIndex < puzzles.length - 1) {
       currentPuzzleIndex++;
+      hintCount = 0;
       displayCurrentPuzzle();
     } else if (score === sessionLength) {
       const levels = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
@@ -747,49 +699,46 @@
       if (nextLevelIndex < levels.length) {
         currentLevel = levels[nextLevelIndex];
         document.getElementById("level-select").value = currentLevel;
+        speak(`Wow! Moving up to ${currentLevel.toUpperCase()}!`);
         alert(`Great job! Moving up to ${currentLevel.toUpperCase()}!`);
         resetQuiz();
       } else {
+        speak("Amazing! You’ve mastered all levels!");
         alert("Congratulations! You've mastered all levels!");
       }
     } else {
-      alert("Session complete! You finished 5 questions.");
+      speak("Session complete! Good work!");
+      alert("Session complete! You finished 5 puzzles.");
     }
   };
 
   const prevPuzzle = () => {
     if (currentPuzzleIndex > 0) {
       currentPuzzleIndex--;
+      hintCount = 0;
       displayCurrentPuzzle();
     } else {
-      alert("This is the first question.");
+      speak("This is the first puzzle!");
+      alert("This is the first puzzle.");
     }
   };
 
   const resetQuiz = () => {
     generatePuzzles();
-    const levelColors = { p1: '#1abc9c', p2: '#3498db', p3: '#9b59b6', p4: '#e74c3c', p5: '#f39c12', p6: '#2ecc71' };
+    const levelColors = { p1: '#ff6f61', p2: '#ff9f1c', p3: '#ffcc00', p4: '#98fb98', p5: '#40c4ff', p6: '#ff69b4' };
     document.documentElement.style.setProperty('--primary-color', levelColors[currentLevel]);
     displayCurrentPuzzle();
   };
 
   const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => console.warn(`Fullscreen error: ${err.message}`));
-    } else {
-      document.exitFullscreen();
-    }
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.warn(err));
+    else document.exitFullscreen();
   };
 
-  /*** Event Listeners ***/
-  document.getElementById("listen-instructions-btn").addEventListener("click", () => {
-    speak(document.querySelector("p.instructions").textContent);
-  });
+  // Event Listeners
+  document.getElementById("listen-instructions-btn").addEventListener("click", () => speak(document.querySelector("p.instructions").textContent));
   document.getElementById("hint-btn").addEventListener("click", showHint);
-  elements.submitBtn.addEventListener("click", (e) => {
-    console.log("Submit button clicked");
-    submitAnswer();
-  });
+  elements.submitBtn.addEventListener("click", submitAnswer);
   document.getElementById("next-btn").addEventListener("click", nextPuzzle);
   document.getElementById("prev-btn").addEventListener("click", prevPuzzle);
   document.getElementById("reset-btn").addEventListener("click", resetQuiz);
@@ -798,12 +747,13 @@
     resetQuiz();
   });
   document.getElementById("fullscreen-btn").addEventListener("click", toggleFullScreen);
-  document.getElementById("theme-toggle").addEventListener("click", () => {
-    document.body.classList.toggle("light-theme");
-  });
+  document.getElementById("theme-toggle").addEventListener("click", () => document.body.classList.toggle("light-theme"));
 
   document.addEventListener("DOMContentLoaded", () => {
     generatePuzzles();
     displayCurrentPuzzle();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js').then(() => console.log("Service Worker registered"));
+    }
   });
 })();
