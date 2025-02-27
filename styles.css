@@ -1,36 +1,34 @@
-/* Kid-Friendly Theme */
 :root {
-  --primary-color: #ff6f61; /* Coral */
-  --secondary-color: #ff9f1c; /* Orange */
-  --accent-color: #ffcc00; /* Yellow */
-  --background-color: #87ceeb; /* Sky Blue */
-  --text-color: #333333; /* Dark Gray for readability */
-  --correct-bg: #98fb98; /* Pale Green */
-  --correct-border: #32cd32; /* Lime Green */
-  --incorrect-bg: #ff9999; /* Light Red */
-  --incorrect-border: #ff4040; /* Red */
-  --word-bg: #ffeb3b; /* Bright Yellow */
-  --word-border: #ffd700; /* Gold */
-  --dropzone-active-bg: #b0e0e6; /* Powder Blue */
-  --progress-bar-bg: #ff69b4; /* Hot Pink */
-  --progress-bar-height: 16px; /* Thicker for visibility */
+  --primary-color: #ff6f61;
+  --secondary-color: #ff9f1c;
+  --accent-color: #ffcc00;
+  --background-color: #87ceeb;
+  --text-color: #333333;
+  --correct-bg: #98fb98;
+  --correct-border: #32cd32;
+  --incorrect-bg: #ff9999;
+  --incorrect-border: #ff4040;
+  --word-bg: #ffeb3b;
+  --word-border: #ffd700;
+  --dropzone-active-bg: #b0e0e6;
+  --progress-bar-bg: #ff69b4;
+  --progress-bar-height: 16px;
 }
 
-/* Light Theme (optional toggle) */
 body.light-theme {
-  --primary-color: #40c4ff; /* Light Blue */
-  --secondary-color: #0288d1; /* Blue */
-  --accent-color: #ffeb3b; /* Yellow */
-  --background-color: #f0f8ff; /* Alice Blue */
+  --primary-color: #40c4ff;
+  --secondary-color: #0288d1;
+  --accent-color: #ffeb3b;
+  --background-color: #f0f8ff;
   --text-color: #333333;
-  --correct-bg: #76ff03; /* Lime */
+  --correct-bg: #76ff03;
   --correct-border: #64dd17;
-  --incorrect-bg: #ff8a80; /* Coral */
+  --incorrect-bg: #ff8a80;
   --incorrect-border: #f44336;
-  --word-bg: #ffca28; /* Amber */
+  --word-bg: #ffca28;
   --word-border: #ffa000;
   --dropzone-active-bg: #e0f7fa;
-  --progress-bar-bg: #ff4081; /* Pink */
+  --progress-bar-bg: #ff4081;
 }
 
 * {
@@ -40,7 +38,7 @@ body.light-theme {
 }
 
 body {
-  font-family: 'Comic Neue', cursive; /* Playful font */
+  font-family: 'Comic Neue', cursive;
   background: linear-gradient(135deg, var(--background-color), #add8e6);
   color: var(--text-color);
   display: flex;
@@ -80,9 +78,7 @@ h1 {
   padding: 10px;
   border-radius: 20px;
 }
-.controls label,
-.controls select,
-.controls input {
+.controls label, .controls select, .controls input {
   font-size: 1.1em;
   margin-right: 10px;
 }
@@ -138,8 +134,7 @@ h1 {
   font-size: 1.2em;
   border: 2px dashed var(--primary-color);
 }
-#gamification-panel p,
-#gamification-panel div {
+#gamification-panel p, #gamification-panel div {
   margin: 8px;
 }
 
@@ -151,7 +146,7 @@ h1 {
   padding: 20px;
   border: 4px solid var(--primary-color);
   border-radius: 20px;
-  background: #fffacd; /* Lemon Chiffon */
+  background: #fffacd;
   max-width: 700px;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
 }
@@ -162,8 +157,7 @@ h1 {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.word-bank,
-.drop-zone {
+.word-bank, .drop-zone {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -171,13 +165,12 @@ h1 {
   border: 3px dashed var(--accent-color);
   border-radius: 15px;
   padding: 15px;
-  background-color: #f0fff0; /* Honeydew */
+  background-color: #f0fff0;
   transition: background-color 0.3s, border-color 0.3s;
   margin-bottom: 15px;
   touch-action: none;
 }
-.word-bank:hover,
-.drop-zone:hover {
+.word-bank:hover, .drop-zone:hover {
   background-color: #e6ffe6;
 }
 .drop-zone.active {
@@ -197,8 +190,7 @@ h1 {
   font-size: 1.2em;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.word:active,
-.word:focus {
+.word:active, .word:focus {
   transform: scale(1.15);
   background-color: rgba(255, 235, 59, 0.8);
   outline: none;
@@ -254,7 +246,7 @@ h1 {
   margin-top: 10px;
   font-weight: bold;
 }
-#hint { color: #4682b4; /* Steel Blue */ }
+#hint { color: #4682b4; }
 #success-message { color: var(--correct-border); }
 
 #reset-btn {
@@ -281,7 +273,6 @@ h1 {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  overflow: hidden;
   z-index: 9999;
 }
 .confetti {
@@ -304,7 +295,8 @@ h1 {
 
 @media (max-width: 600px) {
   h1 { font-size: 2.2em; }
-  .word { font-size: 1em; }
+  .word { font-size: 1em; padding: 8px 12px; }
   .nav-buttons { flex-direction: column; }
   .sentence-container { padding: 15px; }
+  .controls { flex-direction: column; align-items: center; }
 }
