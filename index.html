@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Word Order Adventure</title>
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
   <header>
@@ -66,6 +67,11 @@
       script.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
       script.onload = () => console.log("GSAP loaded");
       document.body.appendChild(script);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(() => console.log("Service Worker registered"))
+          .catch(err => console.error("Service Worker registration failed:", err));
+      }
     });
   </script>
 </body>
