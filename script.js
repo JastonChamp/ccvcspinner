@@ -12,7 +12,8 @@
     xpDisplay: document.getElementById("xp-display"),
     streakDisplay: document.getElementById("streak-display"),
     badgesList: document.getElementById("badges-list"),
-    submitBtn: document.getElementById("submit-btn")
+    submitBtn: document.getElementById("submit-btn"),
+    tryAgainBtn: document.getElementById("try-again-btn")
   };
 
   // Speech API Utility
@@ -37,7 +38,7 @@
     }
   }
 
-  // Primary 1 – Very simple, basic sentences.
+  // Sentence Pools (Full arrays from your input)
   const sentencesP1 = [
     "Doreen had a huge birthday party.",
     "We can go out to play.",
@@ -91,7 +92,6 @@
     "I sleep early at night."
   ];
 
-  // Primary 2 – Slightly more descriptive and compound sentences.
   const sentencesP2 = [
     "It was raining very heavily this morning.",
     "All students should obey the school rules.",
@@ -145,7 +145,6 @@
     "I finished my homework quickly because I understood the topic well."
   ];
 
-  // Primary 3 – Complete sentences with more structure.
   const sentencesP3 = [
     "The boy eats an apple during recess.",
     "The girl plays with a shiny toy in class.",
@@ -199,7 +198,6 @@
     "The child dreams of a fun and adventurous day."
   ];
 
-  // Primary 4 – More descriptive, detailed sentences.
   const sentencesP4 = [
     "The cheerful girl sings beautifully during the assembly.",
     "The boy quickly runs to school, eager to learn.",
@@ -253,7 +251,6 @@
     "The student finished his project with pride and excitement."
   ];
 
-  // Primary 5 – Compound and multi-clause sentences.
   const sentencesP5 = [
     "The teacher reads a fascinating story, and the children listen attentively.",
     "The boy finished his homework before dinner, so he went outside to play.",
@@ -307,7 +304,6 @@
     "The student reflects on his learning journey with enthusiasm and pride."
   ];
 
-  // Primary 6 – Complex sentences with subordinate clauses.
   const sentencesP6 = [
     "After finishing his homework, the student went to the library to study more in depth.",
     "Although it was raining heavily, the children played outside happily during recess.",
@@ -366,11 +362,20 @@
   let puzzles = [];
   let currentPuzzleIndex = 0;
   let score = 0;
-  let currentLevel = 'p3';
-  let xp = 0, streak = parseInt(localStorage.getItem('streak')) || 0, badges = [];
+  let currentLevel = localStorage.getItem('currentLevel') || 'p3';
+  let xp = parseInt(localStorage.getItem('xp')) || 0;
+  let streak = parseInt(localStorage.getItem('streak')) || 0;
+  let badges = JSON.parse(localStorage.getItem('badges')) || [];
   let timeLeft = 30, timerId = null;
   let hintCount = 0;
   let currentDropZone = null;
+  let lastPlayDate = localStorage.getItem('lastPlayDate');
+  const today = new Date().toDateString();
+  if (lastPlayDate && lastPlayDate !== today) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (lastPlayDate !== yesterday.toDateString()) streak = 0;
+  }
 
   // Utilities
   const shuffle = array => array.sort(() => Math.random() - 0.5);
@@ -399,7 +404,7 @@
     }));
     currentPuzzleIndex = 0;
     score = 0;
-    xp = 0; hintCount = 0;
+    hintCount = 0;
     updateGamificationPanel();
   };
 
@@ -419,6 +424,8 @@
     elements.hint.textContent = "";
     elements.successMessage.textContent = "";
     stopTimer();
+    elements.submitBtn.style.display = "inline-block";
+    elements.tryAgainBtn.style.display = "none";
 
     if (currentPuzzleIndex >= puzzles.length) {
       elements.puzzleContainer.innerHTML = "<p>Well done! Session complete!</p>";
@@ -485,9 +492,18 @@
         wordDiv.className = "word";
         wordDiv.textContent = word;
         wordDiv.classList.add(word === puzzle.correct[index] ? "correct" : "incorrect");
+        if (word !== puzzle.correct[index]) {
+          wordDiv.setAttribute("data-tooltip", getWordRole(puzzle.correct[index]));
+          wordDiv.addEventListener("click", () => handleWordClick(wordDiv, index));
+          wordDiv.draggable = true; // Allow re-dragging within drop zone
+          wordDiv.addEventListener("dragstart", handleDragStart);
+          wordDiv.addEventListener("dragend", handleDragEnd);
+        }
         wordDiv.tabIndex = 0;
         currentDropZone.appendChild(wordDiv);
       });
+      elements.submitBtn.style.display = "none";
+      elements.tryAgainBtn.style.display = "inline-block";
     }
 
     elements.puzzleContainer.appendChild(container);
@@ -497,6 +513,25 @@
     elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}${document.getElementById("timer-mode").checked ? ` - Time: ${timeLeft}s` : ""}`;
     elements.score.textContent = `Score: ${score}`;
     elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
+  };
+
+  // Helper to determine word role for tooltip
+  const getWordRole = (word) => {
+    if (/^[A-Z]/.test(word)) return "This is the subject.";
+    if (word.match(/^(is|was|are|runs|jumps|eats)/)) return "This is the verb.";
+    if (word.match(/\.$/)) return "This ends the sentence.";
+    return "This is part of the sentence.";
+  };
+
+  // Handle clicking incorrect words
+  const handleWordClick = (wordDiv, currentIndex) => {
+    const puzzle = puzzles[currentPuzzleIndex];
+    const correctIndex = puzzle.correct.indexOf(wordDiv.textContent);
+    if (correctIndex !== -1 && correctIndex !== currentIndex) {
+      const targetWord = currentDropZone.children[correctIndex];
+      currentDropZone.insertBefore(wordDiv, targetWord);
+      checkCompletion();
+    }
   };
 
   // Drag-and-Drop Handlers
@@ -525,7 +560,10 @@
     e.stopPropagation();
     if (e.currentTarget.classList.contains("drop-zone") && draggedItem) {
       e.currentTarget.classList.remove("active");
-      e.currentTarget.appendChild(draggedItem);
+      const dropIndex = Array.from(e.currentTarget.children).indexOf(draggedItem);
+      if (dropIndex === -1) {
+        e.currentTarget.appendChild(draggedItem);
+      }
       gsap.fromTo(draggedItem, { opacity: 0, scale: 0.8 }, { duration: 0.3, opacity: 1, scale: 1 });
       checkCompletion();
     }
@@ -598,7 +636,11 @@
     elements.xpDisplay.textContent = `XP: ${xp}`;
     elements.streakDisplay.textContent = `Streak: ${streak}`;
     elements.badgesList.textContent = badges.join(', ');
+    localStorage.setItem('xp', xp);
     localStorage.setItem('streak', streak);
+    localStorage.setItem('badges', JSON.stringify(badges));
+    localStorage.setItem('lastPlayDate', today);
+    localStorage.setItem('currentLevel', currentLevel);
   }
 
   function displayConfetti() {
@@ -626,17 +668,20 @@
   // Hint & Submission
   const showHint = () => {
     const puzzle = puzzles[currentPuzzleIndex];
-    if (hintCount < 2 && !puzzle.submitted) {
-      hintCount++;
-      elements.hint.textContent = `Hint: Start with "${puzzle.correct[0]}"`;
-      speak(`Hint: Start with ${puzzle.correct[0]}`);
-      xp -= 2;
+    if (!puzzle.submitted) {
+      if (hintCount === 0) {
+        hintCount++;
+        elements.hint.textContent = `Hint 1: Start with "${puzzle.correct[0]}"`;
+        speak(`Hint: Start with ${puzzle.correct[0]}`);
+      } else if (hintCount === 1) {
+        hintCount++;
+        elements.hint.textContent = "Hint 2: Use Subject-Verb-Object order.";
+        speak("Hint: Use Subject-Verb-Object order.");
+      } else {
+        elements.hint.textContent = "No more hints!";
+      }
+      xp -= hintCount * 2;
       updateGamificationPanel();
-    } else if (puzzle.submitted) {
-      const correctCount = puzzle.userAnswer.reduce((count, word, idx) => word === puzzle.correct[idx] ? count + 1 : count, 0);
-      elements.hint.textContent = `You got ${correctCount} out of ${puzzle.correct.length} words right!`;
-    } else {
-      elements.hint.textContent = "No more hints left!";
     }
   };
 
@@ -644,6 +689,7 @@
     console.log("Submit Answer clicked");
     const puzzle = puzzles[currentPuzzleIndex];
     puzzle.attempts++;
+    localStorage.setItem(`puzzle_${currentPuzzleIndex}_attempts`, puzzle.attempts);
     if (!currentDropZone) return;
     const userWords = Array.from(currentDropZone.children).map(word => word.textContent);
     if (userWords.length !== puzzle.correct.length) return;
@@ -665,10 +711,9 @@
       score++;
       streak++;
       xp += 10 + (document.getElementById("timer-mode").checked ? Math.floor(timeLeft / 5) : 0);
-      if (streak % 3 === 0) {
-        xp += 5;
-        badges.push(`Streak ${streak}`);
-      }
+      if (!badges.includes("First Win")) badges.push("First Win");
+      if (streak === 5 && !badges.includes("Perfect Streak 5")) badges.push("Perfect Streak 5");
+      if (score === sessionLength && !badges.includes("Level Master")) badges.push("Level Master");
       document.getElementById("success-sound").play();
       speak(`Great job! The sentence is: ${puzzle.correct.join(" ")}`);
       elements.successMessage.textContent = "✓ Yay! You got it!";
@@ -678,12 +723,20 @@
     } else {
       document.getElementById("error-sound").play();
       streak = 0;
-      let feedback = "Oops, not quite!";
+      let feedback = "Oops, not quite! Click the red words to fix them.";
       if (needsPunctuation) feedback += " Add a period or question mark.";
       speak(`${feedback} The correct sentence is: ${puzzle.correct.join(" ")}`);
       elements.hint.textContent = feedback;
     }
     updateGamificationPanel();
+    displayCurrentPuzzle();
+  };
+
+  const tryAgain = () => {
+    const puzzle = puzzles[currentPuzzleIndex];
+    puzzle.submitted = false;
+    puzzle.userAnswer = [];
+    hintCount = 0;
     displayCurrentPuzzle();
   };
 
@@ -739,6 +792,7 @@
   document.getElementById("listen-instructions-btn").addEventListener("click", () => speak(document.querySelector("p.instructions").textContent));
   document.getElementById("hint-btn").addEventListener("click", showHint);
   elements.submitBtn.addEventListener("click", submitAnswer);
+  elements.tryAgainBtn.addEventListener("click", tryAgain);
   document.getElementById("next-btn").addEventListener("click", nextPuzzle);
   document.getElementById("prev-btn").addEventListener("click", prevPuzzle);
   document.getElementById("reset-btn").addEventListener("click", resetQuiz);
@@ -752,8 +806,5 @@
   document.addEventListener("DOMContentLoaded", () => {
     generatePuzzles();
     displayCurrentPuzzle();
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js').then(() => console.log("Service Worker registered"));
-    }
   });
 })();
