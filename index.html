@@ -4,48 +4,49 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Word Order Adventure</title>
-  <link href="https://fonts.googleapis.com/css2?family=Annie+Use+Your+Telescope&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Annie+Use+Your+Telescope&family=Open+Sans&display=swap" rel="stylesheet">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
   <header>
     <h1>Word Order Adventure</h1>
-    <div class="status-bar">
+    <div class="status-bar" role="status">
       <span id="progress">Puzzle 1/5</span>
       <span id="xp-display">XP: 0</span>
       <span id="streak-display">Streak: 0</span>
-      <span id="badges-list">Badges: None yet</span>
-      <button id="settings-btn" aria-label="Settings">⚙️</button>
+      <span id="badges-list">Badges: <span class="badges-tooltip" title="First Win, Perfect Streak 5">2</span></span>
+      <button id="settings-btn" aria-label="Settings" title="Settings">⭐</button>
     </div>
   </header>
   
   <main class="game-container" id="game-container">
     <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite"></section>
     <div class="progress-bar-container">
-      <div id="progress-bar"></div>
+      <div id="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
     </div>
     <nav class="nav-buttons">
-      <button id="prev-btn">Previous</button>
-      <button id="hint-btn">Hint</button>
-      <button id="submit-btn" disabled>Submit</button>
-      <button id="try-again-btn" style="display: none;">Try Again</button>
-      <button id="next-btn">Next</button>
-      <button id="fullscreen-btn">Fullscreen</button>
-      <button id="theme-toggle">Theme</button>
+      <button id="prev-btn" aria-label="Previous puzzle">Previous</button>
+      <button id="hint-btn" aria-label="Get a hint">Hint</button>
+      <button id="submit-btn" disabled aria-label="Submit answer">Submit</button>
+      <button id="try-again-btn" style="display: none;" aria-label="Try again">Try Again</button>
+      <button id="next-btn" aria-label="Next puzzle">Next</button>
+      <button id="fullscreen-btn" aria-label="Toggle fullscreen">Fullscreen</button>
+      <button id="theme-toggle" aria-label="Toggle theme">Theme</button>
     </nav>
-    <div class="feedback-panel" id="feedback-panel" aria-live="polite">
+    <div class="feedback-panel" id="feedback-panel" aria-live="polite" role="alert">
       <p id="feedback-message"></p>
+      <button id="dismiss-feedback" class="dismiss-btn" aria-label="Dismiss feedback">OK</button>
     </div>
     <div id="feedback-announcer" aria-live="polite" class="visually-hidden"></div>
-    <button id="reset-btn">Start Over</button>
+    <button id="reset-btn" aria-label="Start over">Start Over</button>
   </main>
 
   <div id="settings-modal" class="modal" role="dialog" aria-labelledby="settings-title">
     <div class="modal-content">
       <h2 id="settings-title">Settings</h2>
       <label for="level-select">Level:</label>
-      <select id="level-select">
+      <select id="level-select" aria-label="Select level">
         <option value="p1">Primary 1</option>
         <option value="p2">Primary 2</option>
         <option value="p3" selected>Primary 3</option>
@@ -53,14 +54,14 @@
         <option value="p5">Primary 5</option>
         <option value="p6">Primary 6</option>
       </select>
-      <label><input type="checkbox" id="timer-mode"> Timer Mode</label>
+      <label><input type="checkbox" id="timer-mode" aria-label="Enable timer mode"> Timer Mode</label>
       <label for="timer-duration">Timer (s):</label>
-      <select id="timer-duration">
+      <select id="timer-duration" aria-label="Select timer duration">
         <option value="30">30</option>
         <option value="60">60</option>
         <option value="0">Off</option>
       </select>
-      <button id="close-settings">Close</button>
+      <button id="close-settings" aria-label="Close settings">Close</button>
     </div>
   </div>
 
