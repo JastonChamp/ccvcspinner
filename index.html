@@ -4,20 +4,41 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Word Order Adventure</title>
-  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Annie+Use+Your+Telescope&display=swap" rel="stylesheet">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
   <header>
     <h1>Word Order Adventure</h1>
-    <p class="instructions">
-      Drag the words below to make a sentence or question!<br>
-      Start with a capital letter and end with a full stop or question mark.<br>
-      <span style="font-size: 0.8em; color: var(--accent-color);">(Tap and hold on phones)</span>
-    </p>
-    <div class="controls">
-      <label for="level-select">Pick Your Level:</label>
+    <div class="status-bar">
+      <span id="progress">Puzzle 1/5</span>
+      <span id="xp-display">XP: 0</span>
+      <span id="streak-display">Streak: 0</span>
+      <button id="settings-btn" aria-label="Settings">⚙️</button>
+    </div>
+  </header>
+  
+  <main class="game-container" id="game-container">
+    <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite"></section>
+    <div class="progress-bar-container">
+      <div id="progress-bar"></div>
+    </div>
+    <nav class="nav-buttons">
+      <button id="hint-btn">Hint</button>
+      <button id="submit-btn" disabled>Submit</button>
+      <button id="next-btn">Next</button>
+    </nav>
+    <div class="feedback-panel" id="feedback-panel" aria-live="polite">
+      <p id="feedback-message"></p>
+    </div>
+    <div id="feedback-announcer" aria-live="polite" class="visually-hidden"></div>
+  </main>
+
+  <div id="settings-modal" class="modal" role="dialog" aria-labelledby="settings-title">
+    <div class="modal-content">
+      <h2 id="settings-title">Settings</h2>
+      <label for="level-select">Level:</label>
       <select id="level-select">
         <option value="p1">Primary 1</option>
         <option value="p2">Primary 2</option>
@@ -26,54 +47,20 @@
         <option value="p5">Primary 5</option>
         <option value="p6">Primary 6</option>
       </select>
-      <label><input type="checkbox" id="timer-mode"> Timer Mode (30s)</label>
-      <button id="listen-instructions-btn" class="instruction-btn">Hear Instructions</button>
-      <button id="fullscreen-btn" class="instruction-btn">Fullscreen</button>
-      <button id="theme-toggle" class="instruction-btn">Change Theme</button>
+      <label><input type="checkbox" id="timer-mode"> Timer Mode</label>
+      <label for="timer-duration">Timer (s):</label>
+      <select id="timer-duration">
+        <option value="30">30</option>
+        <option value="60">60</option>
+        <option value="0">Off</option>
+      </select>
+      <button id="close-settings">Close</button>
     </div>
-  </header>
-  
-  <main class="game-container" id="game-container">
-    <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite"></section>
-    <section id="progress-bar-container">
-      <div id="progress-bar"></div>
-    </section>
-    <section id="gamification-panel">
-      <p id="xp-display">XP: 0</p>
-      <p id="streak-display">Streak: 0</p>
-      <div id="badges-container">Badges: <span id="badges-list"></span></div>
-    </section>
-    <nav class="nav-buttons">
-      <button id="prev-btn">Back</button>
-      <button id="hint-btn">Get a Hint</button>
-      <button id="submit-btn" disabled>Check Answer</button>
-      <button id="try-again-btn" style="display: none;">Try Again</button>
-      <button id="next-btn">Next</button>
-    </nav>
-    <div class="feedback">
-      <p id="progress"></p>
-      <p id="score"></p>
-      <p id="hint"></p>
-      <p id="success-message" aria-live="polite"></p>
-    </div>
-    <button id="reset-btn">Start Over</button>
-  </main>
+  </div>
 
-  <audio id="success-sound" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
-  <audio id="error-sound" src="https://www.soundjay.com/buttons/beep-02.mp3" preload="auto"></audio>
+  <audio id="success-sound" src="/sounds/success.mp3" preload="auto"></audio>
+  <audio id="error-sound" src="/sounds/error.mp3" preload="auto"></audio>
   <script src="script.js" defer></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const script = document.createElement("script");
-      script.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
-      script.onload = () => console.log("GSAP loaded");
-      document.body.appendChild(script);
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(() => console.log("Service Worker registered"))
-          .catch(err => console.error("Service Worker registration failed:", err));
-      }
-    });
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
 </body>
 </html>
