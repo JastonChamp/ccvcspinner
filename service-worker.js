@@ -1,43 +1,34 @@
-const CACHE_NAME = 'word-order-v1';
+const CACHE_NAME = 'word-order-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/styles.css',
   '/script.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js',
-  'https://www.soundjay.com/buttons/beep-01a.mp3',
-  'https://www.soundjay.com/buttons/beep-02.mp3'
+  '/sounds/success.mp3',
+  '/sounds/error.mp3',
+  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log("Caching assets");
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(response => {
-      if (response) return response;
-      return fetch(event.request).catch(() => {
-        return caches.match('/index.html'); // Offline fallback
-      });
+      return response || fetch(event.request).catch(() => caches.match('/index.html'));
     })
   );
 });
 
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (!cacheWhitelist.includes(cacheName)) {
-            return caches.delete(cacheName);
-          }
+          if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
         })
       );
     })
