@@ -410,7 +410,7 @@
     const words = puzzle.submitted ? puzzle.userAnswer : shuffle([...puzzle.correct]);
     words.forEach((word, idx) => {
       const wordDiv = document.createElement("div");
-      wordDiv.className = "word";
+      wordDiv.className = "word draggable";
       wordDiv.textContent = word;
       wordDiv.draggable = !puzzle.submitted;
       wordDiv.tabIndex = 0;
@@ -532,9 +532,8 @@
   // Gamification
   const updateStatusBar = () => {
     elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1}/${sessionLength}`;
-    elements.xpDisplay.textContent = `XP: ${xp}`;
-    elements.streakDisplay.textContent = `Streak: ${streak}`;
-    elements.badgesList.textContent = `Badges: ${badges.join(", ") || "None yet"}`;
+    elements.badgesList.textContent = `⭐ ${badges.length > 0 ? badges.length : "0"}`;
+    elements.badgesList.querySelector(".badges-tooltip").title = badges.join(", ") || "None yet";
     elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
     localStorage.setItem('xp', xp);
     localStorage.setItem('streak', streak);
@@ -547,13 +546,13 @@
     elements.feedbackMessage.textContent = message;
     elements.feedbackAnnouncer.textContent = message;
     elements.feedbackPanel.classList.add(isSuccess ? "success" : "error");
-    elements.feedbackPanel.classList.add("visible");
+    elements.feedbackPanel.classList.add("visible", "enter");
     elements.dismissFeedback.style.display = "inline-block";
     elements.dismissFeedback.focus();
     setTimeout(() => {
       if (elements.feedbackPanel.classList.contains("visible")) {
         elements.feedbackPanel.classList.add("fading");
-        setTimeout(() => elements.feedbackPanel.classList.remove("visible", "fading", "success", "error"), 1000);
+        setTimeout(() => elements.feedbackPanel.classList.remove("visible", "fading", "success", "error", "enter"), 1000);
       }
     }, 10000);
   };
@@ -564,6 +563,7 @@
       spread: 70,
       origin: { y: 0.6 },
       colors: ["#4CAF50", "#1976D2", "#FFC107"],
+      decay: 0.9,
     });
   };
 
@@ -584,6 +584,8 @@
     showFeedback(hintText, false);
     speak(hintText);
     updateStatusBar();
+    document.querySelector(".mascot").classList.add("hint");
+    setTimeout(() => document.querySelector(".mascot").classList.remove("hint"), 2000);
   };
 
   const submitAnswer = () => {
@@ -607,6 +609,8 @@
       speak(`Correct! ${puzzle.correct.join(" ")}`);
       launchConfetti();
       Array.from(dropZone.children).forEach(word => word.classList.add("correct"));
+      document.querySelector(".mascot").classList.add("correct");
+      setTimeout(() => document.querySelector(".mascot").classList.remove("correct"), 2000);
     } else {
       streak = 0;
       document.getElementById("error-sound").play();
@@ -615,6 +619,13 @@
       speak(feedback);
       elements.submitBtn.style.display = "none";
       elements.tryAgainBtn.style.display = "inline-block";
+      Array.from(dropZone.children).forEach((word, idx) => {
+        if (word.textContent !== puzzle.correct[idx]) {
+          word.classList.add("incorrect");
+        }
+      });
+      document.querySelector(".mascot").classList.add("error");
+      setTimeout(() => document.querySelector(".mascot").classList.remove("error"), 2000);
     }
     updateStatusBar();
     displayCurrentPuzzle();
@@ -694,4 +705,42 @@
   document.getElementById("close-settings").addEventListener("click", () => {
     document.getElementById("settings-modal").classList.remove("visible");
   });
-  document.getElementById("level-select").addEventListener("change",
+  document.getElementById("level-select").addEventListener("change", (e) => {
+    currentLevel = e.target.value;
+    resetQuiz();
+  });
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    document.body.classList.toggle("light-theme");
+  });
+  elements.dismissFeedback.addEventListener("click", () => {
+    elements.feedbackPanel.classList.remove("visible", "fading", "success", "error", "enter");
+    elements.dismissFeedback.style.display = "none";
+  });
+
+  // Simulate long-press for settings (for demonstration; use touch events in production)
+  let longPressTimer;
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
+  document.addEventListener("mousedown", (e) => {
+    if (e.button === 0 && (e.target.classList.contains("word-bank") || e.target.classList.contains("drop-zone"))) {
+      longPressTimer = setTimeout(() => {
+        document.getElementById("settings-modal").classList.add("visible");
+      }, 1000); // 1-second long press
+    }
+  });
+  document.addEventListener("mouseup", () => clearTimeout(longPressTimer));
+  document.addEventListener("touchstart", (e) => {
+    if (e.target.classList.contains("word-bank") || e.target.classList.contains("drop-zone")) {
+      longPressTimer = setTimeout(() => {
+        document.getElementById("settings-modal").classList.add("visible");
+      }, 1000); // 1-second long press
+    }
+  });
+  document.addEventListener("touchend", () => clearTimeout(longPressTimer));
+
+  // Initialize
+  document.addEventListener("DOMContentLoaded", () => {
+    generatePuzzles();
+    displayCurrentPuzzle();
+    updateStatusBar();
+  });
+})();
