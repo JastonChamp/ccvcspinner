@@ -14,6 +14,7 @@
     feedbackPanel: document.getElementById("feedback-panel"),
     feedbackMessage: document.getElementById("feedback-message"),
     feedbackAnnouncer: document.getElementById("feedback-announcer"),
+    dismissFeedback: document.getElementById("dismiss-feedback"),
   };
 
   // Sentence Pools (Full arrays)
@@ -427,6 +428,36 @@
             dropZone.insertBefore(wordDiv.nextSibling, wordDiv);
           }
         });
+        wordDiv.addEventListener("touchstart", (e) => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          const wordRect = wordDiv.getBoundingClientRect();
+          const offsetX = touch.clientX - wordRect.left;
+          const offsetY = touch.clientY - wordRect.top;
+          wordDiv.style.position = "absolute";
+          wordDiv.style.zIndex = "1000";
+
+          const handleTouchMove = (moveEvent) => {
+            const moveTouch = moveEvent.touches[0];
+            wordDiv.style.left = `${moveTouch.clientX - offsetX}px`;
+            wordDiv.style.top = `${moveTouch.clientY - offsetY}px`;
+          };
+          const handleTouchEnd = (endEvent) => {
+            document.removeEventListener("touchmove", handleTouchMove);
+            document.removeEventListener("touchend", handleTouchEnd);
+            wordDiv.style.position = "";
+            wordDiv.style.left = "";
+            wordDiv.style.top = "";
+            wordDiv.style.zIndex = "";
+            const dropTarget = document.elementFromPoint(endEvent.changedTouches[0].clientX, endEvent.changedTouches[0].clientY);
+            if (dropTarget.classList.contains("drop-zone")) {
+              dropTarget.appendChild(wordDiv);
+              checkCompletion();
+            }
+          };
+          document.addEventListener("touchmove", handleTouchMove);
+          document.addEventListener("touchend", handleTouchEnd, { once: true });
+        });
       } else {
         wordDiv.classList.add(word === puzzle.correct[idx] ? "correct" : "incorrect");
         if (word !== puzzle.correct[idx]) {
@@ -473,6 +504,7 @@
     const totalWords = puzzles[currentPuzzleIndex].correct.length;
     const droppedWords = dropZone.children.length;
     elements.submitBtn.disabled = droppedWords !== totalWords;
+    elements.progressBar.setAttribute("aria-valuenow", ((currentPuzzleIndex + 1) / sessionLength) * 100);
   };
 
   // Timer Logic
@@ -501,7 +533,7 @@
     elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1}/${sessionLength}`;
     elements.xpDisplay.textContent = `XP: ${xp}`;
     elements.streakDisplay.textContent = `Streak: ${streak}`;
-    elements.badgesList.textContent = badges.join(", ") || "None yet";
+    elements.badgesList.textContent = `Badges: ${badges.join(", ") || "None yet"}`;
     elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
     localStorage.setItem('xp', xp);
     localStorage.setItem('streak', streak);
@@ -515,14 +547,12 @@
     elements.feedbackAnnouncer.textContent = message;
     elements.feedbackPanel.classList.add(isSuccess ? "success" : "error");
     elements.feedbackPanel.classList.add("visible");
-    setTimeout(() => {
-      elements.feedbackPanel.classList.remove("visible", "success", "error");
-    }, 3000);
+    elements.dismissFeedback.style.display = "inline-block";
   };
 
   const launchConfetti = () => {
     confetti({
-      particleCount: 100,
+      particleCount: 50,
       spread: 70,
       origin: { y: 0.6 },
       colors: ["#4CAF50", "#FF9800", "#FFC107"],
@@ -662,10 +692,15 @@
   document.getElementById("theme-toggle").addEventListener("click", () => {
     document.body.classList.toggle("light-theme");
   });
+  elements.dismissFeedback.addEventListener("click", () => {
+    elements.feedbackPanel.classList.remove("visible", "success", "error");
+    elements.dismissFeedback.style.display = "none";
+  });
 
   // Initialize
   document.addEventListener("DOMContentLoaded", () => {
     generatePuzzles();
     displayCurrentPuzzle();
+    updateStatusBar();
   });
 })();
