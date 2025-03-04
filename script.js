@@ -1,22 +1,42 @@
-  'use strict';
+'use strict';
 
 (() => {
   // Cached DOM elements
   const elements = {
     puzzleContainer: document.getElementById("puzzle-container"),
+    hint: document.getElementById("hint"),
+    successMessage: document.getElementById("success-message"),
     progress: document.getElementById("progress"),
+    score: document.getElementById("score"),
     progressBar: document.getElementById("progress-bar"),
     xpDisplay: document.getElementById("xp-display"),
     streakDisplay: document.getElementById("streak-display"),
     badgesList: document.getElementById("badges-list"),
     submitBtn: document.getElementById("submit-btn"),
-    tryAgainBtn: document.getElementById("try-again-btn"),
-    feedbackPanel: document.getElementById("feedback-panel"),
-    feedbackMessage: document.getElementById("feedback-message"),
-    feedbackAnnouncer: document.getElementById("feedback-announcer"),
-    dismissFeedback: document.getElementById("dismiss-feedback"),
+    tryAgainBtn: document.getElementById("try-again-btn")
   };
 
+  // Speech API Utility
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      const setVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        let preferredVoice = voices.find(v => v.name.includes("Google US English")) || 
+                            voices.find(v => v.lang === "en-US" && v.name.includes("Natural")) || 
+                            voices[0];
+        utterance.voice = preferredVoice;
+        console.log("Voice used:", preferredVoice?.name || "None available");
+      };
+      if (window.speechSynthesis.getVoices().length) setVoice();
+      else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true });
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      window.speechSynthesis.speak(utterance);
+    } else {
+      console.warn("Speech Synthesis API not supported.");
+    }
+  }
   // Sentence Pools (Full arrays)
   const sentencesP1 = [
     "Doreen had a huge birthday party.",
@@ -338,12 +358,16 @@
 
   // Game variables
   const sessionLength = 5;
-  let puzzles = [], currentPuzzleIndex = 0, score = 0;
+  let puzzles = [];
+  let currentPuzzleIndex = 0;
+  let score = 0;
+  let currentLevel = localStorage.getItem('currentLevel') || 'p3';
   let xp = parseInt(localStorage.getItem('xp')) || 0;
   let streak = parseInt(localStorage.getItem('streak')) || 0;
   let badges = JSON.parse(localStorage.getItem('badges')) || [];
-  let currentLevel = localStorage.getItem('currentLevel') || 'p3';
-  let timeLeft = 0, timerId = null, hintCount = 0;
+  let timeLeft = 30, timerId = null;
+  let hintCount = 0;
+  let currentDropZone = null;
   let lastPlayDate = localStorage.getItem('lastPlayDate');
   const today = new Date().toDateString();
   if (lastPlayDate && lastPlayDate !== today) {
@@ -354,14 +378,14 @@
 
   // Utilities
   const shuffle = array => array.sort(() => Math.random() - 0.5);
-  const speak = (text) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utterance);
-    } else {
-      elements.feedbackMessage.textContent = text;
-    }
+  const debounce = (func, wait) => {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
   };
+
   const getSentencesForLevel = level => ({
     p1: sentencesP1, p2: sentencesP2, p3: sentencesP3,
     p4: sentencesP4, p5: sentencesP5, p6: sentencesP6
@@ -369,11 +393,11 @@
 
   // Puzzle Generation
   const generatePuzzles = () => {
-    console.log("Generating puzzles for level:", currentLevel); // Debug
+    console.log("Generating puzzles for level:", currentLevel);
     const sentencePool = getSentencesForLevel(currentLevel);
     if (!sentencePool || sentencePool.length === 0) {
       console.error("Sentence pool is empty or undefined for level:", currentLevel);
-      return; // Prevent crash if no sentences
+      return;
     }
     const selectedSentences = shuffle([...sentencePool]).slice(0, sessionLength);
     puzzles = selectedSentences.map(sentence => ({
@@ -385,277 +409,330 @@
     currentPuzzleIndex = 0;
     score = 0;
     hintCount = 0;
-    updateStatusBar();
-  };
-
-  // Display Puzzle
-  const displayCurrentPuzzle = () => {
-    if (!elements.puzzleContainer) {
-      console.error("Puzzle container not found in DOM");
-      return;
-    }
-    elements.puzzleContainer.innerHTML = "";
-    stopTimer();
-    elements.submitBtn.disabled = true;
-    elements.submitBtn.style.display = "inline-block";
-    elements.tryAgainBtn.style.display = "none";
-
-    if (currentPuzzleIndex >= puzzles.length) {
-      elements.puzzleContainer.innerHTML = "<p>Congratulations! Session complete!</p>";
-      speak("Congratulations! You finished the session!");
-      return;
-    }
-
-    const puzzle = puzzles[currentPuzzleIndex];
-    if (!puzzle || !puzzle.correct) {
-      console.error("Puzzle or puzzle.correct is undefined at index:", currentPuzzleIndex);
-      elements.puzzleContainer.innerHTML = "<p>Error: No puzzle data available. Please restart.</p>";
-      return;
-    }
-
-    const container = document.createElement("div");
-    container.className = "sentence-container";
-
-    const wordBank = document.createElement("div");
-    wordBank.className = "word-bank";
-    const dropZone = document.createElement("div");
-    dropZone.className = "drop-zone";
-
-    const wordFragment = document.createDocumentFragment();
-    const words = puzzle.submitted ? puzzle.userAnswer : shuffle([...puzzle.correct]);
-    if (!words || words.length === 0) {
-      console.error("No words to display for puzzle:", puzzle);
-      return;
-    }
-
-    words.forEach((word, idx) => {
-      const wordDiv = document.createElement("div");
-      wordDiv.className = "word draggable";
-      wordDiv.textContent = word || "Missing Word"; // Fallback for undefined words
-      wordDiv.draggable = !puzzle.submitted;
-      wordDiv.tabIndex = 0;
-
-      if (!puzzle.submitted) {
-        wordDiv.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("text/plain", word || "");
-          wordDiv.classList.add("dragging");
-        });
-        wordDiv.addEventListener("dragend", () => wordDiv.classList.remove("dragging"));
-        wordDiv.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            dropZone.appendChild(wordDiv);
-            checkCompletion();
-          } else if (e.key === "ArrowLeft" && wordDiv.previousSibling) {
-            dropZone.insertBefore(wordDiv, wordDiv.previousSibling);
-          } else if (e.key === "ArrowRight" && wordDiv.nextSibling) {
-            dropZone.insertBefore(wordDiv.nextSibling, wordDiv);
-          }
-        });
-        wordDiv.addEventListener("touchstart", (e) => {
-          e.preventDefault();
-          const touch = e.touches[0];
-          const wordRect = wordDiv.getBoundingClientRect();
-          const offsetX = touch.clientX - wordRect.left;
-          const offsetY = touch.clientY - wordRect.top;
-          wordDiv.style.position = "absolute";
-          wordDiv.style.zIndex = "1000";
-          wordDiv.classList.add("dragging");
-
-          const handleTouchMove = (moveEvent) => {
-            const moveTouch = moveEvent.touches[0];
-            wordDiv.style.left = `${moveTouch.clientX - offsetX}px`;
-            wordDiv.style.top = `${moveTouch.clientY - offsetY}px`;
-          };
-          const handleTouchEnd = (endEvent) => {
-            document.removeEventListener("touchmove", handleTouchMove);
-            document.removeEventListener("touchend", handleTouchEnd);
-            wordDiv.style.position = "";
-            wordDiv.style.left = "";
-            wordDiv.style.top = "";
-            wordDiv.style.zIndex = "";
-            wordDiv.classList.remove("dragging");
-            const dropTarget = document.elementFromPoint(endEvent.changedTouches[0].clientX, endEvent.changedTouches[0].clientY);
-            if (dropTarget.classList.contains("drop-zone")) {
-              dropTarget.appendChild(wordDiv);
-              checkCompletion();
-            }
-          };
-          document.addEventListener("touchmove", handleTouchMove);
-          document.addEventListener("touchend", handleTouchEnd, { once: true });
-        });
-      } else {
-        wordDiv.classList.add(word === puzzle.correct[idx] ? "correct" : "incorrect");
-        if (word !== puzzle.correct[idx]) {
-          wordDiv.setAttribute("data-tooltip", getWordRole(puzzle.correct[idx]));
-        }
-      }
-      wordFragment.appendChild(wordDiv);
-    });
-    (puzzle.submitted ? dropZone : wordBank).appendChild(wordFragment);
-
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropZone.classList.add("drag-over");
-    });
-    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
-    dropZone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("drag-over");
-      const word = e.dataTransfer.getData("text/plain");
-      const sourceWord = Array.from(wordBank.children).find(w => w.textContent === word);
-      if (sourceWord) {
-        dropZone.appendChild(sourceWord);
-        checkCompletion();
-      }
-    });
-
-    container.append(wordBank, dropZone);
-    elements.puzzleContainer.appendChild(container);
-    updateStatusBar();
-    startTimer();
-  };
-
-  // Helper for word role
-  const getWordRole = (word) => {
-    if (!word) return "Missing word role";
-    if (/^[A-Z]/.test(word)) return "This is the subject.";
-    if (word.match(/^(is|was|are|runs|jumps|eats)/)) return "This is the verb.";
-    if (word.match(/\.$|\?$|\!$|\,$/)) return "This includes punctuation.";
-    return "This is part of the sentence.";
+    updateGamificationPanel();
   };
 
   // Check Completion
   const checkCompletion = () => {
-    const dropZone = elements.puzzleContainer.querySelector(".drop-zone");
+    if (!currentDropZone) return;
     const totalWords = puzzles[currentPuzzleIndex].correct.length;
-    const droppedWords = dropZone.children.length;
+    const droppedWords = currentDropZone.children.length;
     elements.submitBtn.disabled = droppedWords !== totalWords;
-    elements.submitBtn.setAttribute("aria-label", elements.submitBtn.disabled ? "Drag all words to submit" : "Submit answer");
-    elements.progressBar.setAttribute("aria-valuenow", ((currentPuzzleIndex + 1) / sessionLength) * 100);
+    elements.submitBtn.style.opacity = elements.submitBtn.disabled ? "0.5" : "1";
+    console.log(`Check Completion - Dropped: ${droppedWords}, Total: ${totalWords}, Button Enabled: ${!elements.submitBtn.disabled}`);
   };
+
+  // Display Puzzle
+  const displayCurrentPuzzle = () => {
+    elements.puzzleContainer.innerHTML = "";
+    elements.hint.textContent = "";
+    elements.successMessage.textContent = "";
+    stopTimer();
+    elements.submitBtn.style.display = "inline-block";
+    elements.tryAgainBtn.style.display = "none";
+
+    if (currentPuzzleIndex >= puzzles.length) {
+      elements.puzzleContainer.innerHTML = "<p>Well done! Session complete!</p>";
+      speak("Well done! You finished the session!");
+      return;
+    }
+
+    const puzzle = puzzles[currentPuzzleIndex];
+    const container = document.createElement("div");
+    container.className = "sentence-container";
+
+    const header = document.createElement("h3");
+    header.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}`;
+    container.appendChild(header);
+
+    const wordBank = document.createElement("div");
+    wordBank.className = "word-bank";
+    wordBank.setAttribute("aria-label", "Word Bank");
+    wordBank.setAttribute("role", "list");
+
+    currentDropZone = document.createElement("div");
+    currentDropZone.className = "drop-zone";
+    currentDropZone.setAttribute("aria-label", "Drop Zone");
+    currentDropZone.setAttribute("role", "list");
+
+    container.appendChild(wordBank);
+    container.appendChild(currentDropZone);
+
+    [wordBank, currentDropZone].forEach(zone => {
+      zone.addEventListener("dragover", handleDragOver);
+      zone.addEventListener("dragleave", handleDragLeave);
+      zone.addEventListener("drop", handleDrop);
+    });
+
+    if (!puzzle.submitted) {
+      const wordsShuffled = shuffle([...puzzle.correct]);
+      wordsShuffled.forEach(word => {
+        const wordDiv = document.createElement("div");
+        wordDiv.className = "word";
+        wordDiv.setAttribute("role", "listitem");
+        wordDiv.tabIndex = 0;
+        wordDiv.textContent = word;
+        if (window.PointerEvent) {
+          wordDiv.addEventListener("pointerdown", handlePointerDown);
+          wordDiv.draggable = false;
+        } else {
+          wordDiv.draggable = true;
+          wordDiv.addEventListener("dragstart", handleDragStart);
+          wordDiv.addEventListener("dragend", handleDragEnd);
+        }
+        wordDiv.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            currentDropZone.appendChild(wordDiv);
+            checkCompletion();
+            wordDiv.focus();
+          }
+        });
+        wordBank.appendChild(wordDiv);
+      });
+    } else {
+      puzzle.userAnswer.forEach((word, index) => {
+        const wordDiv = document.createElement("div");
+        wordDiv.className = "word";
+        wordDiv.textContent = word;
+        wordDiv.classList.add(word === puzzle.correct[index] ? "correct" : "incorrect");
+        if (word !== puzzle.correct[index]) {
+          wordDiv.setAttribute("data-tooltip", getWordRole(puzzle.correct[index]));
+          wordDiv.addEventListener("click", () => handleWordClick(wordDiv, index));
+          wordDiv.draggable = true;
+          wordDiv.addEventListener("dragstart", handleDragStart);
+          wordDiv.addEventListener("dragend", handleDragEnd);
+        }
+        wordDiv.tabIndex = 0;
+        currentDropZone.appendChild(wordDiv);
+      });
+      elements.submitBtn.style.display = "none";
+      elements.tryAgainBtn.style.display = "inline-block";
+    }
+
+    elements.puzzleContainer.appendChild(container);
+    timeLeft = 30;
+    startTimer();
+    checkCompletion();
+    elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}${document.getElementById("timer-mode").checked ? ` - Time: ${timeLeft}s` : ""}`;
+    elements.score.textContent = `Score: ${score}`;
+    elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
+  };
+
+  // Helper to determine word role for tooltip
+  const getWordRole = (word) => {
+    if (/^[A-Z]/.test(word)) return "This is the subject.";
+    if (word.match(/^(is|was|are|runs|jumps|eats)/)) return "This is the verb.";
+    if (word.match(/\.$/)) return "This ends the sentence.";
+    return "This is part of the sentence.";
+  };
+
+  // Handle clicking incorrect words
+  const handleWordClick = (wordDiv, currentIndex) => {
+    const puzzle = puzzles[currentPuzzleIndex];
+    const correctIndex = puzzle.correct.indexOf(wordDiv.textContent);
+    if (correctIndex !== -1 && correctIndex !== currentIndex) {
+      const targetWord = currentDropZone.children[correctIndex];
+      currentDropZone.insertBefore(wordDiv, targetWord);
+      checkCompletion();
+    }
+  };
+
+  // Drag-and-Drop Handlers
+  let draggedItem = null;
+  const handleDragStart = (e) => {
+    draggedItem = e.target;
+    e.target.style.opacity = "0.5";
+    e.dataTransfer.setData("text/plain", e.target.textContent);
+  };
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = "1";
+  };
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    if (e.currentTarget.classList.contains("drop-zone")) {
+      e.currentTarget.classList.add("active");
+    }
+  };
+  const handleDragLeave = (e) => {
+    if (e.currentTarget.classList.contains("drop-zone")) {
+      e.currentTarget.classList.remove("active");
+    }
+  };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.classList.contains("drop-zone") && draggedItem) {
+      e.currentTarget.classList.remove("active");
+      const dropIndex = Array.from(e.currentTarget.children).indexOf(draggedItem);
+      if (dropIndex === -1) {
+        e.currentTarget.appendChild(draggedItem);
+      }
+      gsap.fromTo(draggedItem, { opacity: 0, scale: 0.8 }, { duration: 0.3, opacity: 1, scale: 1 });
+      checkCompletion();
+    }
+  };
+
+  let pointerDragItem = null, pointerOffsetX = 0, pointerOffsetY = 0;
+  const handlePointerDown = (e) => {
+    if (e.button && e.button !== 0) return;
+    pointerDragItem = e.currentTarget;
+    pointerDragItem.setPointerCapture(e.pointerId);
+    pointerDragItem.style.opacity = "0.7";
+    pointerDragItem.style.zIndex = "1000";
+    const rect = pointerDragItem.getBoundingClientRect();
+    pointerOffsetX = e.clientX - rect.left;
+    pointerOffsetY = e.clientY - rect.top;
+  };
+  const handlePointerMove = (e) => {
+    if (!pointerDragItem) return;
+    pointerDragItem.style.position = "absolute";
+    pointerDragItem.style.left = `${e.clientX - pointerOffsetX}px`;
+    pointerDragItem.style.top = `${e.clientY - pointerOffsetY}px`;
+    e.preventDefault();
+  };
+  const handlePointerUp = (e) => {
+    if (!pointerDragItem) return;
+    pointerDragItem.releasePointerCapture(e.pointerId);
+    pointerDragItem.style.opacity = "1";
+    const originalDisplay = pointerDragItem.style.display;
+    pointerDragItem.style.display = "none";
+    const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+    pointerDragItem.style.display = originalDisplay;
+    let validDropZone = dropTarget;
+    while (validDropZone && !validDropZone.classList.contains("drop-zone")) {
+      validDropZone = validDropZone.parentElement;
+    }
+    if (validDropZone) {
+      validDropZone.appendChild(pointerDragItem);
+      gsap.fromTo(pointerDragItem, { opacity: 0, scale: 0.8 }, { duration: 0.3, opacity: 1, scale: 1 });
+      currentDropZone = validDropZone;
+      checkCompletion();
+    }
+    pointerDragItem.style.position = "";
+    pointerDragItem.style.left = "";
+    pointerDragItem.style.top = "";
+    pointerDragItem.style.zIndex = "";
+    pointerDragItem = null;
+  };
+  if (window.PointerEvent) {
+    document.addEventListener("pointermove", debounce(handlePointerMove, 10));
+    document.addEventListener("pointerup", handlePointerUp);
+  }
 
   // Timer Logic
   const startTimer = () => {
-    const duration = parseInt(document.getElementById("timer-duration").value);
-    if (!document.getElementById("timer-mode").checked || duration === 0) return;
-    timeLeft = duration;
-    elements.submitBtn.textContent = `Submit (${timeLeft}s)`;
+    if (!document.getElementById("timer-mode").checked) return;
     timerId = setInterval(() => {
       timeLeft--;
-      elements.submitBtn.textContent = `Submit (${timeLeft}s)`;
+      elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength} - Time: ${timeLeft}s`;
       if (timeLeft <= 0) {
-        stopTimer();
+        clearInterval(timerId);
         submitAnswer();
         nextPuzzle();
       }
     }, 1000);
   };
-  const stopTimer = () => {
-    clearInterval(timerId);
-    elements.submitBtn.textContent = "Submit";
-  };
+  const stopTimer = () => clearInterval(timerId);
 
   // Gamification
-  const updateStatusBar = () => {
-    elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1}/${sessionLength}`;
-    elements.badgesList.textContent = `⭐ ${badges.length > 0 ? badges.length : "0"}`;
-    elements.badgesList.querySelector(".badges-tooltip").title = badges.join(", ") || "None yet";
-    elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
+  function updateGamificationPanel() {
+    elements.xpDisplay.textContent = `XP: ${xp}`;
+    elements.streakDisplay.textContent = `Streak: ${streak}`;
+    elements.badgesList.textContent = badges.join(', ') || 'None';
     localStorage.setItem('xp', xp);
     localStorage.setItem('streak', streak);
     localStorage.setItem('badges', JSON.stringify(badges));
     localStorage.setItem('lastPlayDate', today);
     localStorage.setItem('currentLevel', currentLevel);
-  };
+  }
 
-  const showFeedback = (message, isSuccess) => {
-    elements.feedbackMessage.textContent = message;
-    elements.feedbackAnnouncer.textContent = message;
-    elements.feedbackPanel.classList.add(isSuccess ? "success" : "error");
-    elements.feedbackPanel.classList.add("visible", "enter");
-    elements.dismissFeedback.style.display = "inline-block";
-    elements.dismissFeedback.focus();
-    setTimeout(() => {
-      if (elements.feedbackPanel.classList.contains("visible")) {
-        elements.feedbackPanel.classList.add("fading");
-        setTimeout(() => elements.feedbackPanel.classList.remove("visible", "fading", "success", "error", "enter"), 1000);
-      }
-    }, 10000);
-  };
+  function displayConfetti() {
+    const confettiContainer = document.createElement('div');
+    confettiContainer.className = 'confetti-container';
+    document.body.appendChild(confettiContainer);
+    for (let i = 0; i < 50; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = Math.random() * 100 + 'vw';
+      confetti.style.animationDelay = Math.random() * 2 + 's';
+      confetti.style.backgroundColor = getRandomColor();
+      confettiContainer.appendChild(confetti);
+    }
+    setTimeout(() => confettiContainer.remove(), 5000);
+  }
+  function getRandomColor() {
+    return ['#ff6f61', '#ff9f1c', '#ffcc00', '#98fb98', '#40c4ff'][Math.floor(Math.random() * 5)];
+  }
 
-  const launchConfetti = () => {
-    confetti({
-      particleCount: 30,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ["#4CAF50", "#1976D2", "#FFC107"],
-      decay: 0.9,
-    });
-  };
+  function animateSuccessMessage() {
+    gsap.fromTo(elements.successMessage, { scale: 0, opacity: 0 }, { duration: 0.6, scale: 1, opacity: 1, ease: "bounce.out" });
+  }
 
   // Hint & Submission
   const showHint = () => {
     const puzzle = puzzles[currentPuzzleIndex];
-    if (puzzle.submitted) return;
-    let hintText;
-    switch (hintCount) {
-      case 0: hintText = `Start with the subject: "${puzzle.correct[0]}"`; break;
-      case 1: hintText = `Next is the verb: "${puzzle.correct[1]}"`; break;
-      case 2: hintText = "Follow with the object or detail."; break;
-      case 3: hintText = `Correct order: ${puzzle.correct.slice(0, 3).join(" ")}...`; break;
-      default: hintText = "No more hints!"; return;
+    if (!puzzle.submitted) {
+      if (hintCount === 0) {
+        hintCount++;
+        elements.hint.textContent = `Hint 1: Start with "${puzzle.correct[0]}"`;
+        speak(`Hint: Start with ${puzzle.correct[0]}`);
+      } else if (hintCount === 1) {
+        hintCount++;
+        elements.hint.textContent = "Hint 2: Use Subject-Verb-Object order.";
+        speak("Hint: Use Subject-Verb-Object order.");
+      } else {
+        elements.hint.textContent = "No more hints!";
+      }
+      xp -= hintCount * 2;
+      updateGamificationPanel();
     }
-    hintCount++;
-    xp -= hintCount * 5;
-    showFeedback(hintText, false);
-    speak(hintText);
-    updateStatusBar();
-    document.querySelector(".mascot").classList.add("hint");
-    setTimeout(() => document.querySelector(".mascot").classList.remove("hint"), 2000);
-    document.getElementById("success-sound").play(); // Play a hint sound
   };
 
   const submitAnswer = () => {
+    console.log("Submit Answer clicked");
     const puzzle = puzzles[currentPuzzleIndex];
-    const dropZone = elements.puzzleContainer.querySelector(".drop-zone");
-    const userWords = Array.from(dropZone.children).map(word => word.textContent);
-    puzzle.userAnswer = userWords;
-    puzzle.submitted = true;
     puzzle.attempts++;
+    localStorage.setItem(`puzzle_${currentPuzzleIndex}_attempts`, puzzle.attempts);
+    if (!currentDropZone) return;
+    const userWords = Array.from(currentDropZone.children).map(word => word.textContent);
+    if (userWords.length !== puzzle.correct.length) return;
 
-    const isCorrect = userWords.join(" ") === puzzle.correct.join(" ");
-    if (isCorrect) {
+    puzzle.submitted = true;
+    const userWordsAdjusted = userWords.map((word, idx) => 
+      idx === 0 ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word
+    );
+    const needsPunctuation = !/[.!?]/.test(userWordsAdjusted[userWordsAdjusted.length - 1]);
+    puzzle.userAnswer = userWordsAdjusted;
+    const isCorrect = userWordsAdjusted.join(" ") === puzzle.correct.join(" ");
+
+    Array.from(currentDropZone.children).forEach((wordElem, index) => {
+      wordElem.classList.remove("correct", "incorrect");
+      wordElem.classList.add(wordElem.textContent === puzzle.correct[index] ? "correct" : "incorrect");
+    });
+
+    if (isCorrect && !needsPunctuation) {
       score++;
       streak++;
-      xp += 10 + (timeLeft > 0 ? Math.floor(timeLeft / 5) : 0);
+      xp += 10 + (document.getElementById("timer-mode").checked ? Math.floor(timeLeft / 5) : 0);
       if (!badges.includes("First Win")) badges.push("First Win");
-      if (streak === 5) badges.push("Streak Master");
-      if (score === sessionLength) badges.push("Level Master");
+      if (streak === 5 && !badges.includes("Perfect Streak 5")) badges.push("Perfect Streak 5");
+      if (score === sessionLength && !badges.includes("Level Master")) badges.push("Level Master");
       document.getElementById("success-sound").play();
-      showFeedback("Great job! Correct sentence!", true);
-      speak(`Correct! ${puzzle.correct.join(" ")}`);
-      launchConfetti();
-      Array.from(dropZone.children).forEach(word => word.classList.add("correct"));
-      document.querySelector(".mascot").classList.add("correct");
-      setTimeout(() => document.querySelector(".mascot").classList.remove("correct"), 2000);
+      speak(`Great job! The sentence is: ${puzzle.correct.join(" ")}`);
+      elements.successMessage.textContent = "✓ Yay! You got it!";
+      animateSuccessMessage();
+      displayConfetti();
+      setTimeout(() => elements.successMessage.textContent = "", 3000);
     } else {
-      streak = 0;
       document.getElementById("error-sound").play();
-      const feedback = `Oops! Should be: ${puzzle.correct.join(" ")}. Try again or move on.`;
-      showFeedback(feedback, false);
-      speak(feedback);
-      elements.submitBtn.style.display = "none";
-      elements.tryAgainBtn.style.display = "inline-block";
-      Array.from(dropZone.children).forEach((word, idx) => {
-        if (word.textContent !== puzzle.correct[idx]) {
-          word.classList.add("incorrect");
-        }
-      });
-      document.querySelector(".mascot").classList.add("error");
-      setTimeout(() => document.querySelector(".mascot").classList.remove("error"), 2000);
+      streak = 0;
+      let feedback = "Oops, not quite! Click the red words to fix them.";
+      if (needsPunctuation) feedback += " Add a period or question mark.";
+      speak(`${feedback} The correct sentence is: ${puzzle.correct.join(" ")}`);
+      elements.hint.textContent = feedback;
     }
-    updateStatusBar();
+    updateGamificationPanel();
     displayCurrentPuzzle();
   };
 
@@ -669,7 +746,6 @@
 
   // Navigation
   const nextPuzzle = () => {
-    stopTimer();
     if (currentPuzzleIndex < puzzles.length - 1) {
       currentPuzzleIndex++;
       hintCount = 0;
@@ -680,93 +756,59 @@
       if (nextLevelIndex < levels.length) {
         currentLevel = levels[nextLevelIndex];
         document.getElementById("level-select").value = currentLevel;
-        speak(`Moving up to ${currentLevel.toUpperCase()}!`);
-        alert(`Great job! Advancing to ${currentLevel.toUpperCase()}!`);
+        speak(`Wow! Moving up to ${currentLevel.toUpperCase()}!`);
+        alert(`Great job! Moving up to ${currentLevel.toUpperCase()}!`);
         resetQuiz();
       } else {
-        speak("You’ve mastered all levels!");
+        speak("Amazing! You’ve mastered all levels!");
         alert("Congratulations! You've mastered all levels!");
       }
     } else {
-      speak("Session complete! Well done!");
+      speak("Session complete! Good work!");
       alert("Session complete! You finished 5 puzzles.");
     }
   };
 
   const prevPuzzle = () => {
-    stopTimer();
     if (currentPuzzleIndex > 0) {
       currentPuzzleIndex--;
       hintCount = 0;
       displayCurrentPuzzle();
     } else {
       speak("This is the first puzzle!");
-      showFeedback("This is the first puzzle!", false);
+      alert("This is the first puzzle.");
     }
   };
 
   const resetQuiz = () => {
-    stopTimer();
     generatePuzzles();
+    const levelColors = { p1: '#ff6f61', p2: '#ff9f1c', p3: '#ffcc00', p4: '#98fb98', p5: '#40c4ff', p6: '#ff69b4' };
+    document.documentElement.style.setProperty('--primary-color', levelColors[currentLevel]);
     displayCurrentPuzzle();
   };
 
   const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => console.warn(err));
-    } else {
-      document.exitFullscreen();
-    }
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.warn(err));
+    else document.exitFullscreen();
   };
 
   // Event Listeners
+  document.getElementById("listen-instructions-btn").addEventListener("click", () => speak(document.querySelector("p.instructions").textContent));
   document.getElementById("hint-btn").addEventListener("click", showHint);
   elements.submitBtn.addEventListener("click", submitAnswer);
   elements.tryAgainBtn.addEventListener("click", tryAgain);
   document.getElementById("next-btn").addEventListener("click", nextPuzzle);
   document.getElementById("prev-btn").addEventListener("click", prevPuzzle);
   document.getElementById("reset-btn").addEventListener("click", resetQuiz);
-  document.getElementById("fullscreen-btn").addEventListener("click", toggleFullScreen);
-  document.getElementById("close-settings").addEventListener("click", () => {
-    document.getElementById("settings-modal").classList.remove("visible");
-  });
   document.getElementById("level-select").addEventListener("change", (e) => {
     currentLevel = e.target.value;
     resetQuiz();
   });
-  document.getElementById("theme-toggle").addEventListener("click", () => {
-    document.body.classList.toggle("light-theme");
-  });
-  elements.dismissFeedback.addEventListener("click", () => {
-    elements.feedbackPanel.classList.remove("visible", "fading", "success", "error", "enter");
-    elements.dismissFeedback.style.display = "none";
-  });
+  document.getElementById("fullscreen-btn").addEventListener("click", toggleFullScreen);
+  document.getElementById("theme-toggle").addEventListener("click", () => document.body.classList.toggle("light-theme"));
 
-  // Simulate long-press for settings (for demonstration; use touch events in production)
-  let longPressTimer;
-  document.addEventListener("contextmenu", (e) => e.preventDefault());
-  document.addEventListener("mousedown", (e) => {
-    if (e.button === 0 && (e.target.classList.contains("word-bank") || e.target.classList.contains("drop-zone"))) {
-      longPressTimer = setTimeout(() => {
-        document.getElementById("settings-modal").classList.add("visible");
-      }, 1000); // 1-second long press
-    }
-  });
-  document.addEventListener("mouseup", () => clearTimeout(longPressTimer));
-  document.addEventListener("touchstart", (e) => {
-    if (e.target.classList.contains("word-bank") || e.target.classList.contains("drop-zone")) {
-      longPressTimer = setTimeout(() => {
-        document.getElementById("settings-modal").classList.add("visible");
-      }, 1000); // 1-second long press
-    }
-  });
-  document.addEventListener("touchend", () => clearTimeout(longPressTimer));
-
-  // Initialize
   document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM Loaded, initializing game...");
     generatePuzzles();
     displayCurrentPuzzle();
-    updateStatusBar();
   });
 })();
