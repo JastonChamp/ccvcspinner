@@ -6,7 +6,7 @@
   <title>Word Order Adventure</title>
   <link href="https://fonts.googleapis.com/css2?family=Annie+Use+Your+Telescope&family=Open+Sans&display=swap" rel="stylesheet">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
   <header>
@@ -14,20 +14,23 @@
     <img src="/images/flower.svg" alt="Friendly flower mascot" class="mascot" aria-hidden="true">
     <div class="status-bar" role="status">
       <span id="progress">Puzzle 1/5</span>
-      <span id="xp-display">XP: 0</span>
-      <span id="streak-display">Streak: 0</span>
-      <span id="badges-list">Badges: <span class="badges-tooltip" title="First Win, Perfect Streak 5">2</span></span>
+      <span id="badges-list">⭐ <span class="badges-tooltip" title="First Win, Perfect Streak 5">2</span></span>
     </div>
   </header>
   
   <main class="game-container" id="game-container">
-    <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite"></section>
+    <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite">
+      <div class="sentence-container">
+        <div class="word-bank" aria-label="Word bank"></div>
+        <div class="drop-zone" aria-label="Drop zone for word ordering"></div>
+      </div>
+    </section>
     <div class="progress-bar-container">
       <div id="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
     </div>
     <nav class="nav-buttons">
       <button id="hint-btn" aria-label="Get a hint">Hint</button>
-      <button id="submit-btn" disabled aria-label="Submit answer">Submit</button>
+      <button id="submit-btn" disabled aria-label="Drag all words to submit">Submit</button>
       <button id="next-btn" aria-label="Next puzzle">Next</button>
       <button id="try-again-btn" style="display: none;" aria-label="Try again">Try Again</button>
     </nav>
