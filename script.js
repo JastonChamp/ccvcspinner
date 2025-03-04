@@ -1,4 +1,4 @@
-'use strict';
+  'use strict';
 
 (() => {
   // Cached DOM elements
@@ -369,7 +369,12 @@
 
   // Puzzle Generation
   const generatePuzzles = () => {
+    console.log("Generating puzzles for level:", currentLevel); // Debug
     const sentencePool = getSentencesForLevel(currentLevel);
+    if (!sentencePool || sentencePool.length === 0) {
+      console.error("Sentence pool is empty or undefined for level:", currentLevel);
+      return; // Prevent crash if no sentences
+    }
     const selectedSentences = shuffle([...sentencePool]).slice(0, sessionLength);
     puzzles = selectedSentences.map(sentence => ({
       correct: sentence.split(" "),
@@ -385,6 +390,10 @@
 
   // Display Puzzle
   const displayCurrentPuzzle = () => {
+    if (!elements.puzzleContainer) {
+      console.error("Puzzle container not found in DOM");
+      return;
+    }
     elements.puzzleContainer.innerHTML = "";
     stopTimer();
     elements.submitBtn.disabled = true;
@@ -398,6 +407,12 @@
     }
 
     const puzzle = puzzles[currentPuzzleIndex];
+    if (!puzzle || !puzzle.correct) {
+      console.error("Puzzle or puzzle.correct is undefined at index:", currentPuzzleIndex);
+      elements.puzzleContainer.innerHTML = "<p>Error: No puzzle data available. Please restart.</p>";
+      return;
+    }
+
     const container = document.createElement("div");
     container.className = "sentence-container";
 
@@ -408,16 +423,21 @@
 
     const wordFragment = document.createDocumentFragment();
     const words = puzzle.submitted ? puzzle.userAnswer : shuffle([...puzzle.correct]);
+    if (!words || words.length === 0) {
+      console.error("No words to display for puzzle:", puzzle);
+      return;
+    }
+
     words.forEach((word, idx) => {
       const wordDiv = document.createElement("div");
       wordDiv.className = "word draggable";
-      wordDiv.textContent = word;
+      wordDiv.textContent = word || "Missing Word"; // Fallback for undefined words
       wordDiv.draggable = !puzzle.submitted;
       wordDiv.tabIndex = 0;
 
       if (!puzzle.submitted) {
         wordDiv.addEventListener("dragstart", (e) => {
-          e.dataTransfer.setData("text/plain", word);
+          e.dataTransfer.setData("text/plain", word || "");
           wordDiv.classList.add("dragging");
         });
         wordDiv.addEventListener("dragend", () => wordDiv.classList.remove("dragging"));
@@ -498,6 +518,7 @@
 
   // Helper for word role
   const getWordRole = (word) => {
+    if (!word) return "Missing word role";
     if (/^[A-Z]/.test(word)) return "This is the subject.";
     if (word.match(/^(is|was|are|runs|jumps|eats)/)) return "This is the verb.";
     if (word.match(/\.$|\?$|\!$|\,$/)) return "This includes punctuation.";
@@ -743,6 +764,7 @@
 
   // Initialize
   document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM Loaded, initializing game...");
     generatePuzzles();
     displayCurrentPuzzle();
     updateStatusBar();
