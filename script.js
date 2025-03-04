@@ -416,7 +416,11 @@
       wordDiv.tabIndex = 0;
 
       if (!puzzle.submitted) {
-        wordDiv.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", word));
+        wordDiv.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", word);
+          wordDiv.classList.add("dragging");
+        });
+        wordDiv.addEventListener("dragend", () => wordDiv.classList.remove("dragging"));
         wordDiv.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -436,6 +440,7 @@
           const offsetY = touch.clientY - wordRect.top;
           wordDiv.style.position = "absolute";
           wordDiv.style.zIndex = "1000";
+          wordDiv.classList.add("dragging");
 
           const handleTouchMove = (moveEvent) => {
             const moveTouch = moveEvent.touches[0];
@@ -449,6 +454,7 @@
             wordDiv.style.left = "";
             wordDiv.style.top = "";
             wordDiv.style.zIndex = "";
+            wordDiv.classList.remove("dragging");
             const dropTarget = document.elementFromPoint(endEvent.changedTouches[0].clientX, endEvent.changedTouches[0].clientY);
             if (dropTarget.classList.contains("drop-zone")) {
               dropTarget.appendChild(wordDiv);
@@ -586,6 +592,7 @@
     updateStatusBar();
     document.querySelector(".mascot").classList.add("hint");
     setTimeout(() => document.querySelector(".mascot").classList.remove("hint"), 2000);
+    document.getElementById("success-sound").play(); // Play a hint sound
   };
 
   const submitAnswer = () => {
