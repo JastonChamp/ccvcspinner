@@ -6,17 +6,17 @@
   <title>Word Order Adventure</title>
   <link href="https://fonts.googleapis.com/css2?family=Annie+Use+Your+Telescope&family=Open+Sans&display=swap" rel="stylesheet">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
   <header>
     <h1>Word Order Adventure</h1>
+    <img src="/images/flower.svg" alt="Friendly flower mascot" class="mascot" aria-hidden="true">
     <div class="status-bar" role="status">
       <span id="progress">Puzzle 1/5</span>
       <span id="xp-display">XP: 0</span>
       <span id="streak-display">Streak: 0</span>
       <span id="badges-list">Badges: <span class="badges-tooltip" title="First Win, Perfect Streak 5">2</span></span>
-      <button id="settings-btn" aria-label="Settings" title="Settings">⭐</button>
     </div>
   </header>
   
@@ -26,20 +26,16 @@
       <div id="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
     </div>
     <nav class="nav-buttons">
-      <button id="prev-btn" aria-label="Previous puzzle">Previous</button>
       <button id="hint-btn" aria-label="Get a hint">Hint</button>
       <button id="submit-btn" disabled aria-label="Submit answer">Submit</button>
-      <button id="try-again-btn" style="display: none;" aria-label="Try again">Try Again</button>
       <button id="next-btn" aria-label="Next puzzle">Next</button>
-      <button id="fullscreen-btn" aria-label="Toggle fullscreen">Fullscreen</button>
-      <button id="theme-toggle" aria-label="Toggle theme">Theme</button>
+      <button id="try-again-btn" style="display: none;" aria-label="Try again">Try Again</button>
     </nav>
     <div class="feedback-panel" id="feedback-panel" aria-live="polite" role="alert">
       <p id="feedback-message"></p>
       <button id="dismiss-feedback" class="dismiss-btn" aria-label="Dismiss feedback">OK</button>
     </div>
     <div id="feedback-announcer" aria-live="polite" class="visually-hidden"></div>
-    <button id="reset-btn" aria-label="Start over">Start Over</button>
   </main>
 
   <div id="settings-modal" class="modal" role="dialog" aria-labelledby="settings-title">
@@ -62,6 +58,9 @@
         <option value="0">Off</option>
       </select>
       <button id="close-settings" aria-label="Close settings">Close</button>
+      <button id="prev-btn" aria-label="Previous puzzle" style="display: inline-block;">Previous</button>
+      <button id="fullscreen-btn" aria-label="Toggle fullscreen" style="display: inline-block;">Fullscreen</button>
+      <button id="theme-toggle" aria-label="Toggle theme" style="display: inline-block;">Theme</button>
     </div>
   </div>
 
