@@ -706,9 +706,6 @@
   document.getElementById("prev-btn").addEventListener("click", prevPuzzle);
   document.getElementById("reset-btn").addEventListener("click", resetQuiz);
   document.getElementById("fullscreen-btn").addEventListener("click", toggleFullScreen);
-  document.getElementById("settings-btn").addEventListener("click", () => {
-    document.getElementById("settings-modal").classList.add("visible");
-  });
   document.getElementById("close-settings").addEventListener("click", () => {
     document.getElementById("settings-modal").classList.remove("visible");
   });
