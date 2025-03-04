@@ -2,7 +2,7 @@
   --primary-color: #4CAF50; /* Green */
   --secondary-color: #1976D2; /* Blue */
   --accent-color: #FFC107; /* Yellow */
-  --background-color: #BBDEFB; /* Slightly darker light blue */
+  --background-color: #BBDEFB; /* Bright light blue */
   --text-color: #333333;
   --correct-bg: #A5D6A7; /* Light green */
   --incorrect-bg: #FFCCBC; /* Light red */
@@ -41,7 +41,7 @@ header {
 }
 h1 {
   font-family: 'Annie Use Your Telescope', cursive;
-  font-size: 2.5em;
+  font-size: 3em;
   color: var(--primary-color);
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -57,9 +57,11 @@ h1 {
   background: rgba(255, 255, 255, 0.8);
   padding: 10px 20px;
   border-radius: 10px;
-  font-size: 1.1em;
+  font-size: 1.4em;
+  font-weight: bold;
   flex-wrap: wrap;
   gap: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 .badges-tooltip {
   cursor: help;
@@ -70,7 +72,7 @@ h1 {
   max-width: 800px;
   width: 100%;
   background: rgba(255, 255, 255, 0.9);
-  padding: 20px;
+  padding: 25px;
   border-radius: 15px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -80,13 +82,14 @@ h1 {
   background: #e0e0e0;
   border-radius: 5px;
   margin: 15px 0;
-  height: 20px;
+  height: 25px;
 }
 #progress-bar {
   height: 100%;
   background: var(--primary-color);
   transition: width 0.5s ease;
   border-radius: 5px;
+  animation: pulse 1s infinite alternate;
 }
 
 .sentence-container {
@@ -95,6 +98,7 @@ h1 {
   border-radius: 10px;
   background: #fff;
   margin: 15px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 .word-bank, .drop-zone {
   min-height: 120px;
@@ -106,6 +110,12 @@ h1 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 15px;
+}
+.drop-zone::before {
+  content: url('/images/small-flower.svg');
+  position: absolute;
+  opacity: 0.2;
+  pointer-events: none;
 }
 .drop-zone.drag-over {
   background: #BBDEFB;
@@ -152,8 +162,8 @@ h1 {
 .nav-buttons {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin: 20px 0;
+  gap: 15px;
+  margin: 25px 0;
   flex-wrap: wrap;
 }
 .nav-buttons button {
@@ -166,7 +176,7 @@ h1 {
   cursor: pointer;
   transition: background 0.3s, transform 0.2s;
 }
-.nav-buttons button:hover { background: var(--secondary-color); transform: scale(1.05); }
+.nav-buttons button:hover { background: var(--secondary-color); transform: scale(1.1); animation: bounce 0.5s ease-out; }
 #submit-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
@@ -184,13 +194,14 @@ h1 {
   opacity: 0;
   transition: opacity 0.5s ease;
   width: 80%;
-  max-width: 500px;
+  max-width: 450px;
   display: flex;
   align-items: center;
   gap: 15px;
   z-index: 1000;
 }
 .feedback-panel.visible { opacity: 1; }
+.feedback-panel.enter { animation: fadeIn 0.5s ease-out; }
 .feedback-panel.success { border: 2px solid var(--primary-color); box-shadow: 0 0 10px var(--primary-color); }
 .feedback-panel.error { border: 2px solid var(--secondary-color); box-shadow: 0 0 10px var(--secondary-color); }
 #feedback-message { font-size: 1.4em; font-weight: bold; line-height: 1.5; }
@@ -228,6 +239,7 @@ h1 {
   text-align: center;
   width: 90%;
   max-width: 400px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 .modal-content label, .modal-content select {
   display: block;
@@ -263,14 +275,18 @@ h1 {
   100% { transform: scale(1); }
 }
 @keyframes pulse {
-  0% { box-shadow: 0 0 10px var(--primary-color); }
-  100% { box-shadow: 0 0 20px var(--primary-color); }
+  0% { box-shadow: 0 0 10px var(--primary-color); opacity: 0.8; }
+  100% { box-shadow: 0 0 20px var(--primary-color); opacity: 1; }
+}
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @media (max-width: 600px) {
-  h1 { font-size: 2em; }
+  h1 { font-size: 2.5em; }
   .word { font-size: 1.6em; padding: 20px; }
-  .nav-buttons { flex-direction: column; }
+  .nav-buttons { flex-direction: column; gap: 10px; }
   .status-bar { flex-direction: column; text-align: center; gap: 5px; }
   .feedback-panel { width: 90%; padding: 15px 20px; }
   .mascot { width: 40px; height: 40px; }
