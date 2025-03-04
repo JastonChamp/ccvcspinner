@@ -504,6 +504,7 @@
     const totalWords = puzzles[currentPuzzleIndex].correct.length;
     const droppedWords = dropZone.children.length;
     elements.submitBtn.disabled = droppedWords !== totalWords;
+    elements.submitBtn.setAttribute("aria-label", elements.submitBtn.disabled ? "Drag all words to submit" : "Submit answer");
     elements.progressBar.setAttribute("aria-valuenow", ((currentPuzzleIndex + 1) / sessionLength) * 100);
   };
 
@@ -548,14 +549,21 @@
     elements.feedbackPanel.classList.add(isSuccess ? "success" : "error");
     elements.feedbackPanel.classList.add("visible");
     elements.dismissFeedback.style.display = "inline-block";
+    elements.dismissFeedback.focus();
+    setTimeout(() => {
+      if (elements.feedbackPanel.classList.contains("visible")) {
+        elements.feedbackPanel.classList.add("fading");
+        setTimeout(() => elements.feedbackPanel.classList.remove("visible", "fading", "success", "error"), 1000);
+      }
+    }, 10000);
   };
 
   const launchConfetti = () => {
     confetti({
-      particleCount: 50,
+      particleCount: 30,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ["#4CAF50", "#FF9800", "#FFC107"],
+      colors: ["#4CAF50", "#1976D2", "#FFC107"],
     });
   };
 
@@ -598,6 +606,7 @@
       showFeedback("Great job! Correct sentence!", true);
       speak(`Correct! ${puzzle.correct.join(" ")}`);
       launchConfetti();
+      Array.from(dropZone.children).forEach(word => word.classList.add("correct"));
     } else {
       streak = 0;
       document.getElementById("error-sound").play();
@@ -685,22 +694,4 @@
   document.getElementById("close-settings").addEventListener("click", () => {
     document.getElementById("settings-modal").classList.remove("visible");
   });
-  document.getElementById("level-select").addEventListener("change", (e) => {
-    currentLevel = e.target.value;
-    resetQuiz();
-  });
-  document.getElementById("theme-toggle").addEventListener("click", () => {
-    document.body.classList.toggle("light-theme");
-  });
-  elements.dismissFeedback.addEventListener("click", () => {
-    elements.feedbackPanel.classList.remove("visible", "success", "error");
-    elements.dismissFeedback.style.display = "none";
-  });
-
-  // Initialize
-  document.addEventListener("DOMContentLoaded", () => {
-    generatePuzzles();
-    displayCurrentPuzzle();
-    updateStatusBar();
-  });
-})();
+  document.getElementById("level-select").addEventListener("change",
