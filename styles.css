@@ -41,7 +41,7 @@ header {
 }
 h1 {
   font-family: 'Annie Use Your Telescope', cursive;
-  font-size: 3em;
+  font-size: 3.5em;
   color: var(--primary-color);
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -57,7 +57,7 @@ h1 {
   background: rgba(255, 255, 255, 0.8);
   padding: 10px 20px;
   border-radius: 10px;
-  font-size: 1.4em;
+  font-size: 1.6em;
   font-weight: bold;
   flex-wrap: wrap;
   gap: 10px;
@@ -82,7 +82,7 @@ h1 {
   background: #e0e0e0;
   border-radius: 5px;
   margin: 15px 0;
-  height: 25px;
+  height: 30px;
 }
 #progress-bar {
   height: 100%;
@@ -97,7 +97,7 @@ h1 {
   border: 2px solid var(--accent-color);
   border-radius: 10px;
   background: #fff;
-  margin: 15px 0;
+  margin: 25px 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 .word-bank, .drop-zone {
@@ -123,7 +123,7 @@ h1 {
   box-shadow: 0 0 15px var(--primary-color);
   animation: pulse 0.5s infinite alternate;
 }
-.word {
+.word.draggable {
   padding: 25px;
   background: var(--word-bg);
   border: 2px solid var(--secondary-color);
@@ -136,12 +136,15 @@ h1 {
   text-align: center;
   color: #000;
 }
-.word:hover, .word:focus {
+.word.draggable:hover, .word.draggable:focus {
   transform: scale(1.1);
   outline: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   animation: bounce 0.5s ease-out;
 }
+.word.dragging { transform: scale(1.1); }
+.correct { background: var(--correct-bg); animation: bounce 0.5s ease-out; }
+.incorrect { background: var(--incorrect-bg); }
 .word.incorrect:hover::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -156,8 +159,6 @@ h1 {
   white-space: nowrap;
   z-index: 10;
 }
-.correct { background: var(--correct-bg); animation: bounce 0.5s ease-out; }
-.incorrect { background: var(--incorrect-bg); }
 
 .nav-buttons {
   display: flex;
@@ -202,6 +203,7 @@ h1 {
 }
 .feedback-panel.visible { opacity: 1; }
 .feedback-panel.enter { animation: fadeIn 0.5s ease-out; }
+.feedback-panel.fading { opacity: 0; transition: opacity 1s ease-out; }
 .feedback-panel.success { border: 2px solid var(--primary-color); box-shadow: 0 0 10px var(--primary-color); }
 .feedback-panel.error { border: 2px solid var(--secondary-color); box-shadow: 0 0 10px var(--secondary-color); }
 #feedback-message { font-size: 1.4em; font-weight: bold; line-height: 1.5; }
@@ -269,23 +271,38 @@ h1 {
   border: 0;
 }
 
+.mascot.correct { animation: bounce 0.5s ease-out; }
+.mascot.hint { animation: wink 1s ease-out; }
+.mascot.error { animation: shake 0.5s ease-out; }
+
 @keyframes bounce {
   0% { transform: scale(1); }
   50% { transform: scale(1.1); }
   100% { transform: scale(1); }
 }
 @keyframes pulse {
-  0% { box-shadow: 0 0 10px var(--primary-color); opacity: 0.8; }
-  100% { box-shadow: 0 0 20px var(--primary-color); opacity: 1; }
+  0% { opacity: 0.8; box-shadow: 0 0 10px var(--primary-color); }
+  100% { opacity: 1; box-shadow: 0 0 20px var(--primary-color); }
 }
 @keyframes fadeIn {
   0% { opacity: 0; }
   100% { opacity: 1; }
 }
+@keyframes wink {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1) rotate(-10deg); }
+}
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
+}
 
 @media (max-width: 600px) {
   h1 { font-size: 2.5em; }
-  .word { font-size: 1.6em; padding: 20px; }
+  .word.draggable { font-size: 1.6em; padding: 20px; }
   .nav-buttons { flex-direction: column; gap: 10px; }
   .status-bar { flex-direction: column; text-align: center; gap: 5px; }
   .feedback-panel { width: 90%; padding: 15px 20px; }
