@@ -1,10 +1,10 @@
 'use strict';
 
 (() => {
-  // Cached DOM elements
   const elements = {
     puzzleContainer: document.getElementById("puzzle-container"),
     hint: document.getElementById("hint"),
+    successMessage: document.getElementById("success-message"),
     progress: document.getElementById("progress"),
     score: document.getElementById("score"),
     progressBar: document.getElementById("progress-bar"),
@@ -13,9 +13,7 @@
     streakDisplay: document.getElementById("streak-display"),
     badgesList: document.getElementById("badges-list"),
     submitBtn: document.getElementById("submit-btn"),
-    tryAgainBtn: document.getElementById("try-again-btn"),
-    modalOverlay: document.getElementById("modal-overlay"),
-    modalContent: document.querySelector("#modal-overlay .modal-content")
+    tryAgainBtn: document.getElementById("try-again-btn")
   };
 
   // Speech API Utility
@@ -28,38 +26,13 @@
                             voices.find(v => v.lang === "en-US" && v.name.includes("Natural")) || 
                             voices[0];
         utterance.voice = preferredVoice;
-        console.log("Voice used:", preferredVoice?.name || "None available");
       };
       if (window.speechSynthesis.getVoices().length) setVoice();
       else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true });
       utterance.rate = 1;
       utterance.pitch = 1;
       window.speechSynthesis.speak(utterance);
-    } else {
-      console.warn("Speech Synthesis API not supported.");
     }
-  }
-
-  // Modal Overlay Utility for Feedback
-  function showModal(message, type = "success") {
-    elements.modalContent.textContent = message;
-    elements.modalOverlay.style.display = "flex";
-    // Style modal based on type
-    if (type === "success") {
-      elements.modalContent.classList.remove("modal-error");
-      elements.modalContent.classList.add("modal-success");
-    } else {
-      elements.modalContent.classList.remove("modal-success");
-      elements.modalContent.classList.add("modal-error");
-    }
-    // Animate modal using GSAP
-    gsap.fromTo(elements.modalContent, { scale: 0, opacity: 0 }, { duration: 0.5, scale: 1, opacity: 1, ease: "bounce.out" });
-    setTimeout(() => {
-      gsap.to(elements.modalContent, { duration: 0.5, opacity: 0, onComplete: () => {
-        elements.modalOverlay.style.display = "none";
-        elements.modalContent.style.opacity = 1;
-      }});
-    }, 3000);
   }
 
   // Sentence Pools
@@ -381,7 +354,6 @@
     "The dedicated student looked forward to the future with optimism and a thirst for knowledge."
   ];
 
-  // Game variables
   const sessionLength = 5;
   let puzzles = [];
   let currentPuzzleIndex = 0;
@@ -393,15 +365,13 @@
   let timeLeft = 30, timerId = null;
   let hintCount = 0;
   let currentDropZone = null;
-  let lastPlayDate = localStorage.getItem('lastPlayDate');
   const today = new Date().toDateString();
-  if (lastPlayDate && lastPlayDate !== today) {
+  if (localStorage.getItem('lastPlayDate') && localStorage.getItem('lastPlayDate') !== today) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    if (lastPlayDate !== yesterday.toDateString()) streak = 0;
+    if (localStorage.getItem('lastPlayDate') !== yesterday.toDateString()) streak = 0;
   }
 
-  // Utilities
   const shuffle = array => array.sort(() => Math.random() - 0.5);
   const debounce = (func, wait) => {
     let timeout;
@@ -416,14 +386,8 @@
     p4: sentencesP4, p5: sentencesP5, p6: sentencesP6
   }[level] || sentencesP3);
 
-  // Puzzle Generation
   const generatePuzzles = () => {
-    console.log("Generating puzzles for level:", currentLevel);
     const sentencePool = getSentencesForLevel(currentLevel);
-    if (!sentencePool || sentencePool.length === 0) {
-      console.error("Sentence pool is empty or undefined for level:", currentLevel);
-      return;
-    }
     const selectedSentences = shuffle([...sentencePool]).slice(0, sessionLength);
     puzzles = selectedSentences.map(sentence => ({
       correct: sentence.split(" "),
@@ -437,20 +401,18 @@
     updateGamificationPanel();
   };
 
-  // Check Completion
   const checkCompletion = () => {
     if (!currentDropZone) return;
     const totalWords = puzzles[currentPuzzleIndex].correct.length;
     const droppedWords = currentDropZone.children.length;
     elements.submitBtn.disabled = droppedWords !== totalWords;
-    elements.submitBtn.style.opacity = elements.submitBtn.disabled ? "0.5" : "1";
-    console.log(`Check Completion - Dropped: ${droppedWords}, Total: ${totalWords}, Button Enabled: ${!elements.submitBtn.disabled}`);
+    elements.submitBtn.style.backgroundColor = elements.submitBtn.disabled ? "#cccccc" : "#4CAF50";
   };
 
-  // Display Puzzle
   const displayCurrentPuzzle = () => {
     elements.puzzleContainer.innerHTML = "";
     elements.hint.textContent = "";
+    elements.successMessage.textContent = "";
     stopTimer();
     elements.submitBtn.style.display = "inline-block";
     elements.tryAgainBtn.style.display = "none";
@@ -458,7 +420,6 @@
     if (currentPuzzleIndex >= puzzles.length) {
       elements.puzzleContainer.innerHTML = "<p>Well done! Session complete!</p>";
       speak("Well done! You finished the session!");
-      showModal("Session complete! Great job!", "success");
       return;
     }
 
@@ -483,7 +444,6 @@
     container.appendChild(wordBank);
     container.appendChild(currentDropZone);
 
-    // Grid layout for better responsiveness
     wordBank.style.display = "grid";
     wordBank.style.gridTemplateColumns = "repeat(auto-fit, minmax(120px, 1fr))";
     wordBank.style.gap = "15px";
@@ -505,64 +465,9 @@
         wordDiv.setAttribute("role", "listitem");
         wordDiv.tabIndex = 0;
         wordDiv.textContent = word;
-        wordDiv.style.padding = "25px";
-        wordDiv.style.fontSize = "1.8em";
-
-        if (window.PointerEvent) {
-          wordDiv.addEventListener("pointerdown", handlePointerDown);
-          wordDiv.draggable = false;
-        } else {
-          wordDiv.draggable = true;
-          wordDiv.addEventListener("dragstart", handleDragStart);
-          wordDiv.addEventListener("dragend", handleDragEnd);
-        }
-
-        wordDiv.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            currentDropZone.appendChild(wordDiv);
-            checkCompletion();
-            wordDiv.focus();
-          } else if (e.key === "ArrowLeft" && wordDiv.previousSibling) {
-            currentDropZone.insertBefore(wordDiv, wordDiv.previousSibling);
-          } else if (e.key === "ArrowRight" && wordDiv.nextSibling) {
-            currentDropZone.insertBefore(wordDiv.nextSibling, wordDiv);
-          }
-        });
-
-        wordDiv.addEventListener("touchstart", (e) => {
-          e.preventDefault();
-          const touch = e.touches[0];
-          const wordRect = wordDiv.getBoundingClientRect();
-          const offsetX = touch.clientX - wordRect.left;
-          const offsetY = touch.clientY - wordRect.top;
-          wordDiv.style.position = "absolute";
-          wordDiv.style.zIndex = "1000";
-          wordDiv.classList.add("dragging");
-
-          const handleTouchMove = (moveEvent) => {
-            const moveTouch = moveEvent.touches[0];
-            wordDiv.style.left = `${moveTouch.clientX - offsetX}px`;
-            wordDiv.style.top = `${moveTouch.clientY - offsetY}px`;
-          };
-          const handleTouchEnd = (endEvent) => {
-            document.removeEventListener("touchmove", handleTouchMove);
-            document.removeEventListener("touchend", handleTouchEnd);
-            wordDiv.style.position = "";
-            wordDiv.style.left = "";
-            wordDiv.style.top = "";
-            wordDiv.style.zIndex = "";
-            wordDiv.classList.remove("dragging");
-            const dropTarget = document.elementFromPoint(endEvent.changedTouches[0].clientX, endEvent.changedTouches[0].clientY);
-            if (dropTarget.classList.contains("drop-zone")) {
-              dropTarget.appendChild(wordDiv);
-              checkCompletion();
-            }
-          };
-          document.addEventListener("touchmove", handleTouchMove);
-          document.addEventListener("touchend", handleTouchEnd, { once: true });
-        });
-
+        wordDiv.draggable = true;
+        wordDiv.addEventListener("dragstart", handleDragStart);
+        wordDiv.addEventListener("dragend", handleDragEnd);
         wordBank.appendChild(wordDiv);
       });
     } else {
@@ -571,16 +476,6 @@
         wordDiv.className = "word";
         wordDiv.textContent = word;
         wordDiv.classList.add(word === puzzle.correct[index] ? "correct" : "incorrect");
-        if (word !== puzzle.correct[index]) {
-          wordDiv.setAttribute("data-tooltip", getWordRole(puzzle.correct[index]));
-          wordDiv.addEventListener("click", () => handleWordClick(wordDiv, index));
-          wordDiv.draggable = true;
-          wordDiv.addEventListener("dragstart", handleDragStart);
-          wordDiv.addEventListener("dragend", handleDragEnd);
-        }
-        wordDiv.tabIndex = 0;
-        wordDiv.style.padding = "25px";
-        wordDiv.style.fontSize = "1.8em";
         currentDropZone.appendChild(wordDiv);
       });
       elements.submitBtn.style.display = "none";
@@ -594,29 +489,10 @@
     elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}${document.getElementById("timer-mode").checked ? ` - Time: ${timeLeft}s` : ""}`;
     elements.score.textContent = `Score: ${score}`;
     elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
-    elements.progressLabel.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}`;
+    elements.progressLabel.textContent = `Puzzle ${currentPuzzleIndex + 1}/${sessionLength}`;
   };
 
-  // Helper to determine word role for tooltip
-  const getWordRole = (word) => {
-    if (/^[A-Z]/.test(word)) return "This is the subject.";
-    if (word.match(/^(is|was|are|runs|jumps|eats)/)) return "This is the verb.";
-    if (word.match(/[.!?]$/)) return "This ends the sentence.";
-    return "This is part of the sentence.";
-  };
-
-  // Handle clicking incorrect words
-  const handleWordClick = (wordDiv, currentIndex) => {
-    const puzzle = puzzles[currentPuzzleIndex];
-    const correctIndex = puzzle.correct.indexOf(wordDiv.textContent);
-    if (correctIndex !== -1 && correctIndex !== currentIndex) {
-      const targetWord = currentDropZone.children[correctIndex];
-      currentDropZone.insertBefore(wordDiv, targetWord);
-      checkCompletion();
-    }
-  };
-
-  // Drag-and-Drop Handlers
+  // Drag-and-Drop Handlers with Animations
   let draggedItem = null;
   const handleDragStart = (e) => {
     draggedItem = e.target;
@@ -628,77 +504,21 @@
   };
   const handleDragOver = (e) => {
     e.preventDefault();
-    if (e.currentTarget.classList.contains("drop-zone")) {
-      e.currentTarget.classList.add("active");
-    }
+    e.currentTarget.classList.add("active");
   };
   const handleDragLeave = (e) => {
-    if (e.currentTarget.classList.contains("drop-zone")) {
-      e.currentTarget.classList.remove("active");
-    }
+    e.currentTarget.classList.remove("active");
   };
   const handleDrop = (e) => {
     e.preventDefault();
-    e.stopPropagation();
     if (e.currentTarget.classList.contains("drop-zone") && draggedItem) {
       e.currentTarget.classList.remove("active");
-      const dropIndex = Array.from(e.currentTarget.children).indexOf(draggedItem);
-      if (dropIndex === -1) {
-        e.currentTarget.appendChild(draggedItem);
-      }
-      gsap.fromTo(draggedItem, { opacity: 0, scale: 0.8 }, { duration: 0.3, opacity: 1, scale: 1 });
+      e.currentTarget.appendChild(draggedItem);
+      gsap.fromTo(draggedItem, { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 });
       checkCompletion();
     }
   };
 
-  let pointerDragItem = null, pointerOffsetX = 0, pointerOffsetY = 0;
-  const handlePointerDown = (e) => {
-    if (e.button && e.button !== 0) return;
-    pointerDragItem = e.currentTarget;
-    pointerDragItem.setPointerCapture(e.pointerId);
-    pointerDragItem.style.opacity = "0.7";
-    pointerDragItem.style.zIndex = "1000";
-    const rect = pointerDragItem.getBoundingClientRect();
-    pointerOffsetX = e.clientX - rect.left;
-    pointerOffsetY = e.clientY - rect.top;
-  };
-  const handlePointerMove = (e) => {
-    if (!pointerDragItem) return;
-    pointerDragItem.style.position = "absolute";
-    pointerDragItem.style.left = `${e.clientX - pointerOffsetX}px`;
-    pointerDragItem.style.top = `${e.clientY - pointerOffsetY}px`;
-    e.preventDefault();
-  };
-  const handlePointerUp = (e) => {
-    if (!pointerDragItem) return;
-    pointerDragItem.releasePointerCapture(e.pointerId);
-    pointerDragItem.style.opacity = "1";
-    const originalDisplay = pointerDragItem.style.display;
-    pointerDragItem.style.display = "none";
-    const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
-    pointerDragItem.style.display = originalDisplay;
-    let validDropZone = dropTarget;
-    while (validDropZone && !validDropZone.classList.contains("drop-zone")) {
-      validDropZone = validDropZone.parentElement;
-    }
-    if (validDropZone) {
-      validDropZone.appendChild(pointerDragItem);
-      gsap.fromTo(pointerDragItem, { opacity: 0, scale: 0.8 }, { duration: 0.3, opacity: 1, scale: 1 });
-      currentDropZone = validDropZone;
-      checkCompletion();
-    }
-    pointerDragItem.style.position = "";
-    pointerDragItem.style.left = "";
-    pointerDragItem.style.top = "";
-    pointerDragItem.style.zIndex = "";
-    pointerDragItem = null;
-  };
-  if (window.PointerEvent) {
-    document.addEventListener("pointermove", debounce(handlePointerMove, 10));
-    document.addEventListener("pointerup", handlePointerUp);
-  }
-
-  // Timer Logic
   const startTimer = () => {
     if (!document.getElementById("timer-mode").checked) return;
     timerId = setInterval(() => {
@@ -713,7 +533,6 @@
   };
   const stopTimer = () => clearInterval(timerId);
 
-  // Gamification Panel
   function updateGamificationPanel() {
     elements.xpDisplay.textContent = `XP: ${xp}`;
     elements.streakDisplay.textContent = `Streak: ${streak}`;
@@ -734,16 +553,16 @@
       confetti.className = 'confetti';
       confetti.style.left = Math.random() * 100 + 'vw';
       confetti.style.animationDelay = Math.random() * 2 + 's';
-      confetti.style.backgroundColor = getRandomColor();
+      confetti.style.backgroundColor = ['#ff6f61', '#ff9f1c', '#ffcc00', '#98fb98', '#40c4ff'][Math.floor(Math.random() * 5)];
       confettiContainer.appendChild(confetti);
     }
     setTimeout(() => confettiContainer.remove(), 5000);
   }
-  function getRandomColor() {
-    return ['#ff6f61', '#ff9f1c', '#ffcc00', '#98fb98', '#40c4ff'][Math.floor(Math.random() * 5)];
+
+  function animateSuccessMessage() {
+    gsap.fromTo(elements.successMessage, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "bounce.out" });
   }
 
-  // Hint & Submission
   const showHint = () => {
     const puzzle = puzzles[currentPuzzleIndex];
     if (!puzzle.submitted) {
@@ -764,14 +583,9 @@
   };
 
   const submitAnswer = () => {
-    console.log("Submit Answer clicked");
     const puzzle = puzzles[currentPuzzleIndex];
     puzzle.attempts++;
-    localStorage.setItem(`puzzle_${currentPuzzleIndex}_attempts`, puzzle.attempts);
-    if (!currentDropZone) return;
     const userWords = Array.from(currentDropZone.children).map(word => word.textContent);
-    if (userWords.length !== puzzle.correct.length) return;
-
     puzzle.submitted = true;
     const userWordsAdjusted = userWords.map((word, idx) => 
       idx === 0 ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word
@@ -794,15 +608,16 @@
       if (score === sessionLength && !badges.includes("Level Master")) badges.push("Level Master");
       document.getElementById("success-sound").play();
       speak(`Great job! The sentence is: ${puzzle.correct.join(" ")}`);
-      showModal("✓ Yay! You got it!", "success");
+      elements.successMessage.textContent = "✓ Yay! You got it!";
+      animateSuccessMessage();
       displayConfetti();
+      setTimeout(() => elements.successMessage.textContent = "", 3000);
     } else {
       document.getElementById("error-sound").play();
       streak = 0;
-      let feedback = "Oops, not quite! Click the red words to fix them.";
+      let feedback = "Oops, not quite! Check your order.";
       if (needsPunctuation) feedback += " Add a period or question mark.";
-      speak(`${feedback} The correct sentence is: ${puzzle.correct.join(" ")}`);
-      showModal(feedback, "error");
+      speak(feedback);
       elements.hint.textContent = feedback;
     }
     updateGamificationPanel();
@@ -817,7 +632,6 @@
     displayCurrentPuzzle();
   };
 
-  // Navigation
   const nextPuzzle = () => {
     if (currentPuzzleIndex < puzzles.length - 1) {
       currentPuzzleIndex++;
@@ -861,11 +675,10 @@
   };
 
   const toggleFullScreen = () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.warn(err));
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
     else document.exitFullscreen();
   };
 
-  // Event Listeners
   document.getElementById("listen-instructions-btn").addEventListener("click", () => speak(document.querySelector("p.instructions").textContent));
   document.getElementById("hint-btn").addEventListener("click", showHint);
   elements.submitBtn.addEventListener("click", submitAnswer);
