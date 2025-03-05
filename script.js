@@ -1,53 +1,39 @@
+'use strict';
 
-  const sessionLength = 5;
-  let puzzles = [];
-  let currentPuzzleIndex = 0;
-  let score = 0;
-  let currentLevel = localStorage.getItem('currentLevel') || 'p3';
-  let xp = parseInt(localStorage.getItem('xp')) || 0;
-  let streak = parseInt(localStorage.getItem('streak')) || 0;
-  let badges = JSON.parse(localStorage.getItem('badges')) || [];
-  let timeLeft = 30, timerId = null;
-  let hintCount = 0;
-  let currentDropZone = null;
-  const today = new Date().toDateString();
-  if (localStorage.getItem('lastPlayDate') && localStorage.getItem('lastPlayDate') !== today) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (localStorage.getItem('lastPlayDate') !== yesterday.toDateString()) streak = 0;
+(() => {
+  const elements = {
+    puzzleContainer: document.getElementById("puzzle-container"),
+    hint: document.getElementById("hint"),
+    successMessage: document.getElementById("success-message"),
+    progress: document.getElementById("progress"),
+    score: document.getElementById("score"),
+    progressBar: document.getElementById("progress-bar"),
+    progressLabel: document.getElementById("progress-label"),
+    xpDisplay: document.getElementById("xp-display"),
+    streakDisplay: document.getElementById("streak-display"),
+    badgesList: document.getElementById("badges-list"),
+    submitBtn: document.getElementById("submit-btn"),
+    tryAgainBtn: document.getElementById("try-again-btn")
+  };
+
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      const setVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        let preferredVoice = voices.find(v => v.name.includes("Google US English")) || 
+                            voices.find(v => v.lang === "en-US" && v.name.includes("Natural")) || 
+                            voices[0];
+        utterance.voice = preferredVoice;
+      };
+      if (window.speechSynthesis.getVoices().length) setVoice();
+      else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true });
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      window.speechSynthesis.speak(utterance);
+    }
   }
 
-  const shuffle = array => array.sort(() => Math.random() - 0.5);
-
-  const getSentencesForLevel = level => ({
-    p1: sentencesP1, p2: sentencesP2, p3: sentencesP3,
-    p4: sentencesP4, p5: sentencesP5, p6: sentencesP6
-  }[level] || sentencesP3);
-
-  const generatePuzzles = () => {
-    const sentencePool = getSentencesForLevel(currentLevel);
-    const selectedSentences = shuffle([...sentencePool]).slice(0, sessionLength);
-    puzzles = selectedSentences.map(sentence => ({
-      correct: sentence.split(" "),
-      submitted: false,
-      userAnswer: [],
-      attempts: 0
-    }));
-    currentPuzzleIndex = 0;
-    score = 0;
-    hintCount = 0;
-    updateGamificationPanel();
-  };
-
-  const checkCompletion = () => {
-    if (!currentDropZone) return;
-    const totalWords = puzzles[currentPuzzleIndex].correct.length;
-    const droppedWords = currentDropZone.children.length;
-    elements.submitBtn.disabled = droppedWords !== totalWords;
-    elements.submitBtn.style.backgroundColor = elements.submitBtn.disabled ? "#cccccc" : "#4CAF50";
-  };
-
-  // Sentence Pools
   const sentencesP1 = [
     "Doreen had a huge birthday party.",
     "We can go out to play.",
@@ -365,119 +351,62 @@
     "By the end of the lesson, the students felt inspired to further explore the topic on their own.",
     "The dedicated student looked forward to the future with optimism and a thirst for knowledge."
   ];
-'use strict';
 
-(() => {
-  const elements = {
-    puzzleContainer: document.getElementById("puzzle-container"),
-    hint: document.getElementById("hint"),
-    successMessage: document.getElementById("success-message"),
-    progress: document.getElementById("progress"),
-    score: document.getElementById("score"),
-    progressBar: document.getElementById("progress-bar"),
-    progressLabel: document.getElementById("progress-label"),
-    xpDisplay: document.getElementById("xp-display"),
-    streakDisplay: document.getElementById("streak-display"),
-    badgesList: document.getElementById("badges-list"),
-    submitBtn: document.getElementById("submit-btn"),
-    tryAgainBtn: document.getElementById("try-again-btn")
-  };
-
-  function speak(text) {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      const setVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
-        let preferredVoice = voices.find(v => v.name.includes("Google US English")) || 
-                            voices.find(v => v.lang === "en-US" && v.name.includes("Natural")) || 
-                            voices[0];
-        utterance.voice = preferredVoice;
-      };
-      if (window.speechSynthesis.getVoices().length) setVoice();
-      else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true });
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      window.speechSynthesis.speak(utterance);
-    }
+  const sessionLength = 5;
+  let puzzles = [];
+  let currentPuzzleIndex = 0;
+  let score = 0;
+  let currentLevel = localStorage.getItem('currentLevel') || 'p3';
+  let xp = parseInt(localStorage.getItem('xp')) || 0;
+  let streak = parseInt(localStorage.getItem('streak')) || 0;
+  let badges = JSON.parse(localStorage.getItem('badges')) || [];
+  let timeLeft = 30, timerId = null;
+  let hintCount = 0;
+  let currentDropZone = null;
+  const today = new Date().toDateString();
+  if (localStorage.getItem('lastPlayDate') && localStorage.getItem('lastPlayDate') !== today) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (localStorage.getItem('lastPlayDate') !== yesterday.toDateString()) streak = 0;
   }
 
-  const sentencesP1 = [
-    "Doreen had a huge birthday party.",
-    "We can go out to play.",
-    "The boy was chased by a dog.",
-    "Would you like to have lunch now?",
-    "The house was empty and quiet.",
-    "I have a small red ball.",
-    "My cat sleeps on the warm mat.",
-    "The teacher reads a fun story.",
-    "The dog runs fast in the park.",
-    "I love to draw colorful pictures."
-  ];
+  const shuffle = array => array.sort(() => Math.random() - 0.5);
 
-  const sentencesP2 = [
-    "It was raining very heavily this morning.",
-    "All students should obey the school rules.",
-    "It was so cold that I could not stop shivering.",
-    "Which of these activities do you enjoy doing?",
-    "The teacher explained the lesson clearly and patiently.",
-    "My friend always helps me with my homework.",
-    "The cat quietly slept on the soft cushion.",
-    "We often play games during our lunch break.",
-    "The dog eagerly fetched the ball in the yard.",
-    "The students listened carefully to the principal's announcement."
-  ];
+  const getSentencesForLevel = level => ({
+    p1: sentencesP1, p2: sentencesP2, p3: sentencesP3,
+    p4: sentencesP4, p5: sentencesP5, p6: sentencesP6
+  }[level] || sentencesP3);
 
-  const sentencesP3 = [
-    "The boy eats an apple during recess.",
-    "The girl plays with a shiny toy in class.",
-    "The dog chases the ball across the field.",
-    "The teacher reads an interesting story to the students.",
-    "The cat drinks milk from a small bowl.",
-    "The boy kicks the ball with great enthusiasm.",
-    "The girl draws a colorful picture on the board.",
-    "The dog barks at the stranger outside.",
-    "The student writes a letter to his best friend.",
-    "The mother cooks dinner for the family."
-  ];
+  const generatePuzzles = () => {
+    const sentencePool = getSentencesForLevel(currentLevel);
+    const selectedSentences = shuffle([...sentencePool]).slice(0, sessionLength);
+    puzzles = selectedSentences.map(sentence => ({
+      correct: sentence.split(" "),
+      submitted: false,
+      userAnswer: [],
+      attempts: 0
+    }));
+    currentPuzzleIndex = 0;
+    score = 0;
+    hintCount = 0;
+    updateGamificationPanel();
+  };
 
-  const sentencesP4 = [
-    "The cheerful girl sings beautifully during the assembly.",
-    "The boy quickly runs to school, eager to learn.",
-    "The teacher patiently explains the lesson to her attentive students.",
-    "The children happily play together in the spacious park.",
-    "The shiny red car moves fast along the busy road.",
-    "The little boy smiles brightly when he sees his friend at school.",
-    "The elderly man walks slowly with a calm and steady pace.",
-    "The smart student solves difficult problems with ease.",
-    "The busy mother prepares a delicious breakfast every single morning.",
-    "The gentle wind blows softly, rustling the vibrant green leaves."
-  ];
+  const checkCompletion = () => {
+    if (!currentDropZone) return;
+    const totalWords = puzzles[currentPuzzleIndex].correct.length;
+    const droppedWords = currentDropZone.children.length;
+    elements.submitBtn.disabled = droppedWords !== totalWords;
+    elements.submitBtn.style.backgroundColor = elements.submitBtn.disabled ? "#cccccc" : "#4CAF50";
+  };
 
-  const sentencesP5 = [
-    "The teacher reads a fascinating story, and the children listen attentively.",
-    "The boy finished his homework before dinner, so he went outside to play.",
-    "The little girl happily skipped to school, and her friends cheered her on.",
-    "The bright sun shines over the calm sea while a gentle breeze cools the air.",
-    "The busy bees buzz around the blooming flowers as the children watch in wonder.",
-    "The students study in the library and take notes carefully on every detail.",
-    "The father cooks dinner, and the children eagerly help set the table.",
-    "The dog barks loudly, but the cat remains calm and sleeps peacefully.",
-    "The rain poured outside, yet the class continued their lesson indoors with focus.",
-    "The bird sings in the morning, and the flowers open gracefully to welcome the day."
-  ];
-
-  const sentencesP6 = [
-    "After finishing his homework, the student went to the library to study more in depth.",
-    "Although it was raining heavily, the children played outside happily during recess.",
-    "The teacher, known for her kindness, explained the lesson in remarkable detail.",
-    "Despite the heavy traffic, she arrived at school on time and greeted everyone warmly.",
-    "When the bell rang, the students hurried to their classrooms with eager anticipation.",
-    "Since the exam was extremely challenging, the teacher reviewed the material thoroughly afterward.",
-    "Even though it was late, the boy continued reading his favorite book with great enthusiasm.",
-    "While the sun was setting, the family enjoyed a delightful picnic in the park.",
-    "If you study hard every day, you will achieve excellent results in your exams.",
-    "After the game ended, the players celebrated their victory with cheers and applause."
-  ];
+  const getWordRole = (word, index, correctSentence) => {
+    if (index === 0 && /^[A-Z]/.test(word)) return "subject"; // Starts with capital, usually the subject
+    if (word.match(/^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play)/i)) return "verb"; // Common verbs
+    if (index > 1 && index < correctSentence.length - 1 && !word.match(/[.!?]$/)) return "object"; // Between subject and end
+    if (word.match(/[.!?]$/)) return "end"; // Punctuation marks
+    return "other"; // Fallback for connectors, adjectives, etc.
+  };
 
   const displayCurrentPuzzle = () => {
     elements.puzzleContainer.innerHTML = "";
