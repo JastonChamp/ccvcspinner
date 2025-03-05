@@ -476,6 +476,50 @@
     return "other"; // Fallback for connectors, adjectives, etc.
   };
 
+  const repopulateWordBank = (puzzle) => {
+    const wordBank = document.querySelector(".word-bank");
+    if (!wordBank) return;
+
+    // Clear existing words in word bank (except placeholder if any)
+    Array.from(wordBank.children).forEach((child) => {
+      if (child.classList.contains("word")) child.remove();
+    });
+
+    // Get all words from puzzle.correct that aren't in the drop zone
+    const droppedWords = Array.from(
+      document.querySelectorAll(".drop-zone .word")
+    ).map((word) => word.textContent);
+    const remainingWords = puzzle.correct.filter(
+      (word) => !droppedWords.includes(word)
+    );
+
+    // Shuffle and add remaining words to word bank
+    shuffle([...remainingWords]).forEach((word) => {
+      const wordDiv = document.createElement("div");
+      wordDiv.className = "word";
+      wordDiv.setAttribute("role", "listitem");
+      wordDiv.tabIndex = 0;
+      wordDiv.textContent = word;
+      wordDiv.draggable = true;
+      const role = getWordRole(
+        word,
+        puzzle.correct.indexOf(word),
+        puzzle.correct
+      );
+      wordDiv.dataset.role = role;
+      wordDiv.classList.add(role); // Add role class for styling
+      wordDiv.addEventListener("dragstart", handleDragStart);
+      wordDiv.addEventListener("dragend", handleDragEnd);
+      wordDiv.addEventListener("mouseover", showTooltip);
+      wordDiv.addEventListener("mouseout", hideTooltip);
+      wordDiv.addEventListener("touchstart", showTouchTooltip, {
+        passive: true,
+      });
+      wordDiv.addEventListener("dblclick", removeWord);
+      wordBank.appendChild(wordDiv);
+    });
+  };
+
   const displayCurrentPuzzle = () => {
     elements.puzzleContainer.innerHTML = "";
     elements.hint.textContent = "";
@@ -533,33 +577,7 @@
     });
 
     if (!puzzle.submitted) {
-      const wordsShuffled = shuffle([...puzzle.correct]);
-      wordsShuffled.forEach((word) => {
-        const wordDiv = document.createElement("div");
-        wordDiv.className = "word";
-        wordDiv.setAttribute("role", "listitem");
-        wordDiv.tabIndex = 0;
-        wordDiv.textContent = word;
-        wordDiv.draggable = true;
-        const role = getWordRole(
-          word,
-          puzzle.correct.indexOf(word),
-          puzzle.correct
-        );
-        wordDiv.dataset.role = role;
-        wordDiv.classList.add(role); // Add role class for styling
-        wordDiv.addEventListener("dragstart", handleDragStart);
-        wordDiv.addEventListener("dragend", handleDragEnd);
-        wordDiv.addEventListener("mouseover", showTooltip);
-        wordDiv.addEventListener("mouseout", hideTooltip);
-        wordDiv.addEventListener("touchstart", showTouchTooltip, {
-          passive: true,
-        });
-        wordDiv.addEventListener("dblclick", removeWord); // Allow double-click to remove
-        if (wordBank.querySelector(`.word:text="${word}"`)) {
-          wordBank.appendChild(wordDiv);
-        }
-      });
+      repopulateWordBank(puzzle); // Use new function to populate word bank
       // Add placeholder text to drop zone when empty
       if (currentDropZone.children.length === 0) {
         const placeholder = document.createElement("div");
@@ -645,6 +663,9 @@
         newPlaceholder.style.fontStyle = "italic";
         e.currentTarget.appendChild(newPlaceholder);
       }
+      // Repopulate word bank after drop
+      const puzzle = puzzles[currentPuzzleIndex];
+      repopulateWordBank(puzzle);
     }
   };
 
@@ -804,6 +825,7 @@
   const removeWord = (e) => {
     const word = e.target;
     const wordBank = document.querySelector(".word-bank");
+    const puzzle = puzzles[currentPuzzleIndex];
     if (word.classList.contains("word")) {
       // Remove from drop zone and return to word bank if in drop zone
       if (word.parentElement.classList.contains("drop-zone")) {
@@ -818,7 +840,8 @@
         });
         newWord.addEventListener("dblclick", removeWord);
         wordBank.appendChild(newWord);
-        word.remove();
+        word.classList.add("removing");
+        setTimeout(() => word.remove(), 300); // Wait for animation
         speak("Word removed and returned to the word bank.");
       }
       checkCompletion();
@@ -834,6 +857,8 @@
         placeholder.style.fontStyle = "italic";
         word.parentElement.appendChild(placeholder);
       }
+      // Repopulate word bank after removal
+      repopulateWordBank(puzzle);
     }
   };
 
@@ -1018,6 +1043,7 @@
   const clearDropZone = () => {
     if (currentDropZone) {
       const wordBank = document.querySelector(".word-bank");
+      const puzzle = puzzles[currentPuzzleIndex];
       Array.from(currentDropZone.children).forEach((word) => {
         if (word.classList.contains("word")) {
           const newWord = word.cloneNode(true);
@@ -1031,7 +1057,8 @@
           });
           newWord.addEventListener("dblclick", removeWord);
           wordBank.appendChild(newWord);
-          word.remove();
+          word.classList.add("removing");
+          setTimeout(() => word.remove(), 300); // Wait for animation
         }
       });
       const placeholder = document.createElement("div");
@@ -1042,6 +1069,8 @@
       currentDropZone.appendChild(placeholder);
       checkCompletion();
       speak("Drop zone cleared. Words returned to the word bank.");
+      // Repopulate word bank after clearing
+      repopulateWordBank(puzzle);
     }
   };
 
