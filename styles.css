@@ -41,7 +41,7 @@ body.light-theme {
 
 body {
   font-family: 'Comic Neue', cursive;
-  background: linear-gradient(135deg, var(--background-color), #add8e6);
+  background: linear-gradient(135deg, var(--background-color), #add8e6), url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.3)"/></svg>') repeat;
   color: var(--text-color);
   display: flex;
   flex-direction: column;
@@ -55,7 +55,7 @@ header {
 }
 
 h1 {
-  font-size: 3em;
+  font-size: 3.5em;
   font-weight: 700;
   color: var(--primary-color);
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
@@ -63,7 +63,7 @@ h1 {
 }
 
 .instructions {
-  font-size: 1.4em;
+  font-size: 1.5em;
   padding: 15px;
   font-weight: 700;
   background-color: rgba(255, 255, 255, 0.8);
@@ -72,6 +72,16 @@ h1 {
   margin: 0 auto 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   line-height: 1.5;
+}
+
+.mascot-container {
+  margin: 10px 0;
+}
+
+.mascot-container img {
+  width: 80px;
+  height: auto;
+  animation: sway 2s infinite ease-in-out;
 }
 
 .controls {
@@ -122,7 +132,7 @@ h1 {
   max-width: 900px;
   width: 100%;
   background: linear-gradient(135deg, #ffffff, #f0f0f0);
-  padding: 30px;
+  padding: 35px;
   border-radius: 20px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   text-align: center;
@@ -153,9 +163,16 @@ h1 {
   left: 50%;
   transform: translate(-50%, -50%);
   color: #fff;
-  font-weight: 700;
-  font-size: 1em;
+  font-weight: 800;
+  font-size: 1.2em;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.progress-icon {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  margin-right: 5px;
 }
 
 #gamification-panel {
@@ -167,6 +184,13 @@ h1 {
   color: var(--text-color);
   font-size: 1.2em;
   border: 2px dashed var(--primary-color);
+}
+
+.badge-icon {
+  width: 30px;
+  height: 30px;
+  vertical-align: middle;
+  margin: 0 5px;
 }
 
 #puzzle-container {
@@ -207,7 +231,7 @@ h1 {
 .drop-zone.active {
   background-color: var(--dropzone-active-bg);
   border-color: var(--primary-color);
-  box-shadow: 0 0 10px var(--primary-color);
+  box-shadow: 0 0 15px var(--primary-color), inset 0 0 5px var(--primary-color);
 }
 
 .word {
@@ -220,19 +244,24 @@ h1 {
   font-weight: 700;
   font-size: 1.6em;
   transition: transform 0.2s, opacity 0.3s, background-color 0.3s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   text-align: center;
 }
+
+.word.subject { border-color: #4CAF50; }
+.word.verb { border-color: #FF5722; }
+.word.object { border-color: #2196F3; }
+.word.end { border-color: #9C27B0; }
 
 .word:hover {
   transform: scale(1.05);
 }
 
 .word:focus {
-  outline: 2px solid var(--primary-color);
+  outline: 3px solid var(--accent-color);
+  outline-offset: 2px;
 }
 
-/* Hint-Specific Styles */
 .hint-subject {
   background-color: var(--hint-subject-bg);
   border-color: #32cd32;
@@ -280,13 +309,14 @@ h1 {
   cursor: pointer;
   background-color: var(--primary-color);
   color: white;
-  transition: background-color 0.3s, transform 0.2s;
+  transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .nav-buttons button:hover {
   background-color: var(--secondary-color);
   transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
 }
 
 .nav-buttons button:active {
@@ -294,12 +324,14 @@ h1 {
 }
 
 .nav-buttons button:focus {
-  outline: 2px solid var(--secondary-color);
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
 }
 
 #submit-btn:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .feedback p {
@@ -331,7 +363,8 @@ h1 {
 }
 
 #reset-btn:focus {
-  outline: 2px solid var(--secondary-color);
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
 }
 
 .confetti-container {
@@ -385,8 +418,14 @@ h1 {
   100% { transform: scale(1); }
 }
 
+@keyframes sway {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(10deg); }
+  100% { transform: rotate(0deg); }
+}
+
 @media (max-width: 600px) {
-  h1 { font-size: 2.2em; }
+  h1 { font-size: 2.5em; }
   .word { font-size: 1.2em; padding: 15px; }
   .nav-buttons { flex-direction: column; }
   .sentence-container { padding: 15px; max-width: 100%; }
