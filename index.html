@@ -6,7 +6,7 @@
   <title>Word Order Adventure</title>
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
   <header>
@@ -16,6 +16,9 @@
       Start with a capital letter and end with a full stop or question mark.<br>
       <span style="font-size: 0.8em; color: var(--accent-color);">(Tap and hold on phones)</span>
     </p>
+    <div class="mascot-container">
+      <img src="images/mascot.png" alt="Friendly Flower Mascot" id="mascot">
+    </div>
     <div class="controls">
       <label for="level-select">Pick Your Level:</label>
       <select id="level-select">
@@ -36,7 +39,7 @@
   <main class="game-container" id="game-container">
     <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite"></section>
     <section id="progress-bar-container">
-      <div id="progress-bar"><span id="progress-label">Puzzle 1/5</span></div>
+      <div id="progress-bar"><span id="progress-label"><img src="images/star.png" alt="Star" class="progress-icon"> Puzzle 1/5</span></div>
     </section>
     <section id="gamification-panel">
       <p id="xp-display">XP: 0</p>
@@ -66,7 +69,13 @@
     document.addEventListener("DOMContentLoaded", () => {
       const script = document.createElement("script");
       script.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js";
-      script.onload = () => console.log("GSAP loaded");
+      script.onload = () => {
+        console.log("GSAP loaded");
+        const mascot = document.getElementById("mascot");
+        if (mascot) {
+          gsap.to(mascot, { duration: 2, rotation: 360, ease: "power1.inOut", repeat: -1 });
+        }
+      };
       document.body.appendChild(script);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/service-worker.js')
