@@ -34,7 +34,6 @@
       window.speechSynthesis.speak(utterance);
     }
   }
-
   // Sentence Pools
   const sentencesP1 = [
     "Doreen had a huge birthday party.",
@@ -354,6 +353,7 @@
     "The dedicated student looked forward to the future with optimism and a thirst for knowledge."
   ];
 
+
   const sessionLength = 5;
   let puzzles = [];
   let currentPuzzleIndex = 0;
@@ -373,13 +373,6 @@
   }
 
   const shuffle = array => array.sort(() => Math.random() - 0.5);
-  const debounce = (func, wait) => {
-    let timeout;
-    return (...args) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
-    };
-  };
 
   const getSentencesForLevel = level => ({
     p1: sentencesP1, p2: sentencesP2, p3: sentencesP3,
@@ -407,6 +400,14 @@
     const droppedWords = currentDropZone.children.length;
     elements.submitBtn.disabled = droppedWords !== totalWords;
     elements.submitBtn.style.backgroundColor = elements.submitBtn.disabled ? "#cccccc" : "#4CAF50";
+  };
+
+  const getWordRole = (word, index, correctSentence) => {
+    if (index === 0 && /^[A-Z]/.test(word)) return "subject"; // Starts with capital, usually the subject
+    if (word.match(/^(is|was|are|were|runs|eats|sings|sleeps|reads|writes|had|play)/)) return "verb"; // Common verbs
+    if (index > 1 && index < correctSentence.length - 1 && !word.match(/[.!?]$/)) return "object"; // Between subject and end
+    if (word.match(/[.!?]$/)) return "end"; // Punctuation marks
+    return "other"; // Fallback for connectors, adjectives, etc.
   };
 
   const displayCurrentPuzzle = () => {
@@ -466,6 +467,7 @@
         wordDiv.tabIndex = 0;
         wordDiv.textContent = word;
         wordDiv.draggable = true;
+        wordDiv.dataset.role = getWordRole(word, puzzle.correct.indexOf(word), puzzle.correct); // Store role for hints
         wordDiv.addEventListener("dragstart", handleDragStart);
         wordDiv.addEventListener("dragend", handleDragEnd);
         wordBank.appendChild(wordDiv);
@@ -492,7 +494,7 @@
     elements.progressLabel.textContent = `Puzzle ${currentPuzzleIndex + 1}/${sessionLength}`;
   };
 
-  // Drag-and-Drop Handlers with Animations
+  // Drag-and-Drop Handlers
   let draggedItem = null;
   const handleDragStart = (e) => {
     draggedItem = e.target;
@@ -563,19 +565,54 @@
     gsap.fromTo(elements.successMessage, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "bounce.out" });
   }
 
+  // Enhanced Hints Function
   const showHint = () => {
     const puzzle = puzzles[currentPuzzleIndex];
     if (!puzzle.submitted) {
+      const wordBankWords = Array.from(document.querySelectorAll(".word-bank .word"));
       if (hintCount === 0) {
+        // Hint 1: Reveal the subject
         hintCount++;
-        elements.hint.textContent = `Hint 1: Start with "${puzzle.correct[0]}"`;
-        speak(`Hint: Start with ${puzzle.correct[0]}`);
+        const subjectWord = puzzle.correct[0];
+        elements.hint.textContent = `Who does it? The subject is "${subjectWord}".`;
+        speak(`Who does it? The subject is ${subjectWord}.`);
+        wordBankWords.forEach(word => {
+          if (word.textContent === subjectWord) {
+            word.classList.add("hint-subject");
+          }
+        });
       } else if (hintCount === 1) {
+        // Hint 2: Reveal the verb
         hintCount++;
-        elements.hint.textContent = "Hint 2: Use Subject-Verb-Object order.";
-        speak("Hint: Use Subject-Verb-Object order.");
+        const verbIndex = puzzle.correct.findIndex(word => getWordRole(word, puzzle.correct.indexOf(word), puzzle.correct) === "verb");
+        const verbWord = puzzle.correct[verbIndex];
+        elements.hint.textContent = `What happens? The action word is "${verbWord}".`;
+        speak(`What happens? The action word is ${verbWord}.`);
+        wordBankWords.forEach(word => {
+          if (word.textContent === verbWord) {
+            word.classList.add("hint-verb");
+          }
+        });
+      } else if (hintCount === 2) {
+        // Hint 3: Reveal the object (if present)
+        hintCount++;
+        const objectIndex = puzzle.correct.findIndex((word, idx) => getWordRole(word, idx, puzzle.correct) === "object");
+        if (objectIndex !== -1) {
+          const objectWord = puzzle.correct[objectIndex];
+          elements.hint.textContent = `What’s it about? The object is "${objectWord}".`;
+          speak(`What’s it about? The object is ${objectWord}.`);
+          wordBankWords.forEach(word => {
+            if (word.textContent === objectWord) {
+              word.classList.add("hint-object");
+            }
+          });
+        } else {
+          elements.hint.textContent = "No more hints! Try putting the words together.";
+          speak("No more hints! Try putting the words together.");
+        }
       } else {
-        elements.hint.textContent = "No more hints!";
+        elements.hint.textContent = "No more hints! You can do it!";
+        speak("No more hints! You can do it!");
       }
       xp -= hintCount * 2;
       updateGamificationPanel();
