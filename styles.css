@@ -13,6 +13,9 @@
   --dropzone-active-bg: #b0e0e6;
   --progress-bar-bg: linear-gradient(to right, #4CAF50, #98fb98);
   --progress-bar-height: 20px;
+  --hint-subject-bg: #98fb98; /* Green for subject */
+  --hint-verb-bg: #ff9f1c; /* Orange for verb */
+  --hint-object-bg: #40c4ff; /* Blue for object */
 }
 
 body.light-theme {
@@ -216,7 +219,7 @@ h1 {
   user-select: none;
   font-weight: 700;
   font-size: 1.6em;
-  transition: transform 0.2s, opacity 0.3s;
+  transition: transform 0.2s, opacity 0.3s, background-color 0.3s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
@@ -227,6 +230,25 @@ h1 {
 
 .word:focus {
   outline: 2px solid var(--primary-color);
+}
+
+/* Hint-Specific Styles */
+.hint-subject {
+  background-color: var(--hint-subject-bg);
+  border-color: #32cd32;
+  animation: pulse 1s infinite;
+}
+
+.hint-verb {
+  background-color: var(--hint-verb-bg);
+  border-color: #e65100;
+  animation: pulse 1s infinite;
+}
+
+.hint-object {
+  background-color: var(--hint-object-bg);
+  border-color: #0288d1;
+  animation: pulse 1s infinite;
 }
 
 .correct {
@@ -355,6 +377,12 @@ h1 {
   50% { transform: translateX(5px); }
   75% { transform: translateX(-5px); }
   100% { transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 @media (max-width: 600px) {
