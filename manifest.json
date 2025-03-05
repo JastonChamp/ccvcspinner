@@ -3,7 +3,7 @@
   "short_name": "WordOrder",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#BBDEFB",
+  "background_color": "#B2EBF2",
   "theme_color": "#4CAF50",
   "icons": [
     {
