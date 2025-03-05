@@ -23,9 +23,25 @@
   // Speech Synthesis with UK Female Voice (Fallback to Pleasant US/AU Female Voice)
   function speak(text) {
     if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      const setVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
+      // Ensure voices are loaded before speaking (wait if necessary)
+      const ensureVoiceLoaded = new Promise((resolve) => {
+        const checkVoices = () => {
+          const voices = window.speechSynthesis.getVoices();
+          if (voices.length > 0) {
+            resolve(voices);
+          } else {
+            window.speechSynthesis.addEventListener(
+              "voiceschanged",
+              () => resolve(window.speechSynthesis.getVoices()),
+              { once: true }
+            );
+          }
+        };
+        checkVoices();
+      });
+
+      ensureVoiceLoaded.then((voices) => {
+        const utterance = new SpeechSynthesisUtterance(text);
         // Prioritize UK female voice
         let preferredVoice = voices.find(
           (v) =>
@@ -55,21 +71,17 @@
         // Final fallback to any female voice or default voice
         if (!preferredVoice) {
           preferredVoice = voices.find((v) => v.gender === "female") || voices[0];
+          console.warn(
+            "No female voice found, using default voice. Check browser voice settings."
+          );
         }
         utterance.voice = preferredVoice || voices[0]; // Ensure a voice is set
-      };
-      if (window.speechSynthesis.getVoices().length) setVoice();
-      else
-        window.speechSynthesis.addEventListener(
-          "voiceschanged",
-          setVoice,
-          { once: true }
-        );
-      // Adjust for clarity and pleasantness
-      utterance.rate = 0.9; // Slightly slower for better clarity
-      utterance.pitch = 1.1; // Slightly higher pitch for a pleasant tone
-      utterance.volume = 1.0; // Maximum volume for audibility on iPads
-      window.speechSynthesis.speak(utterance);
+        // Adjust for clarity and pleasantness
+        utterance.rate = 0.9; // Slightly slower for better clarity
+        utterance.pitch = 1.1; // Slightly higher pitch for a pleasant tone
+        utterance.volume = 1.0; // Maximum volume for audibility on iPads
+        window.speechSynthesis.speak(utterance);
+      });
     } else {
       console.warn("Speech synthesis not supported on this device.");
     }
