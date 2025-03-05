@@ -163,17 +163,17 @@ h1 {
 
 .word-bank,
 .drop-zone {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  min-height: 100px;
-  border: 3px dashed var(--accent-color);
-  border-radius: 15px;
+  min-height: 120px; /* Increased from 100px for better touch targets */
   padding: 15px;
-  background-color: #f0fff0;
+  border: 4px dashed var(--accent-color); /* Thicker border for emphasis */
+  background: #F5F5F5; /* Neutral background from current version */
+  border-radius: 10px;
+  margin: 10px 0;
+  display: grid; /* Grid layout from current version for better responsiveness */
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Responsive grid columns */
+  gap: 15px; /* Increased gap for better spacing */
   transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
-  margin-bottom: 15px;
-  touch-action: none;
+  touch-action: none; /* Ensure touch events work correctly */
 }
 .word-bank:hover,
 .drop-zone:hover {
@@ -186,16 +186,18 @@ h1 {
 }
 
 .word {
-  padding: 12px 18px;
-  background-color: var(--word-bg);
+  padding: 25px; /* Larger padding from current version for better touch targets */
+  background: var(--word-bg);
   border: 2px solid var(--word-border);
-  border-radius: 12px;
+  border-radius: 8px; /* Smaller radius for modern look */
   cursor: pointer;
   user-select: none;
   font-weight: bold;
-  transition: transform 0.2s, background-color 0.3s;
-  font-size: 1.2em;
+  transition: transform 0.2s ease, background-color 0.3s;
+  font-size: 1.8em; /* Larger font from current version for readability */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center; /* Centered text from current version */
+  color: #000;
   position: relative;
 }
 .word:active,
@@ -328,7 +330,7 @@ h1 {
 
 @media (max-width: 600px) {
   h1 { font-size: 2.2em; }
-  .word { font-size: 1em; padding: 10px 15px; }
+  .word { font-size: 1.2em; padding: 15px; } /* Adjusted for smaller screens */
   .nav-buttons { flex-direction: column; }
   .sentence-container { padding: 15px; max-width: 100%; }
   .controls { gap: 10px; }
