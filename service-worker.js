@@ -1,41 +1,36 @@
-const CACHE_NAME = 'word-order-v2';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/script.js',
-  '/sounds/success.mp3',
-  '/sounds/error.mp3',
-  '/images/flower.svg',
-  '/images/small-flower.svg',
-  '/images/mascot.png',
-  '/favicon.ico',
-  '/manifest.json',
-  'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'
-];
+'use strict';
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
-});
+(() => {
+  const elements = {
+    puzzleContainer: document.getElementById("puzzle-container"),
+    hint: document.getElementById("hint"),
+    successMessage: document.getElementById("success-message"),
+    progress: document.getElementById("progress"),
+    score: document.getElementById("score"),
+    progressBar: document.getElementById("progress-bar"),
+    progressLabel: document.getElementById("progress-label"),
+    xpDisplay: document.getElementById("xp-display"),
+    streakDisplay: document.getElementById("streak-display"),
+    badgesList: document.getElementById("badges-list"),
+    submitBtn: document.getElementById("submit-btn"),
+    tryAgainBtn: document.getElementById("try-again-btn")
+  };
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request).catch(() => caches.match('/index.html'));
-    })
-  );
-});
-
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
-        })
-      );
-    })
-  );
-});
+  // Speech API Utility
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      const setVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        let preferredVoice = voices.find(v => v.name.includes("Google US English")) || 
+                            voices.find(v => v.lang === "en-US" && v.name.includes("Natural")) || 
+                            voices[0];
+        utterance.voice = preferredVoice;
+      };
+      if (window.speechSynthesis.getVoices().length) setVoice();
+      else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true });
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      window.speechSynthesis.speak(utterance);
+    }
+  }
