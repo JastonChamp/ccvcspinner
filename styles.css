@@ -424,6 +424,25 @@ h1 {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Add animation for word removal */
+@keyframes bounceOut {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.word.removing {
+  animation: bounceOut 0.3s ease-out forwards;
+}
+
 @keyframes confetti-fall {
   0% {
     transform: translateY(0) rotate(0deg);
