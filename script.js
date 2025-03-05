@@ -37,7 +37,8 @@
       console.warn("Speech Synthesis API not supported.");
     }
   }
-  // Sentence Pools (Full arrays)
+
+  // Sentence Pools (Full arrays from your input)
   const sentencesP1 = [
     "Doreen had a huge birthday party.",
     "We can go out to play.",
@@ -458,6 +459,14 @@
     container.appendChild(wordBank);
     container.appendChild(currentDropZone);
 
+    // Add grid layout for better responsiveness (improvement from current version)
+    wordBank.style.display = "grid";
+    wordBank.style.gridTemplateColumns = "repeat(auto-fit, minmax(120px, 1fr))";
+    wordBank.style.gap = "15px";
+    currentDropZone.style.display = "grid";
+    currentDropZone.style.gridTemplateColumns = "repeat(auto-fit, minmax(120px, 1fr))";
+    currentDropZone.style.gap = "15px";
+
     [wordBank, currentDropZone].forEach(zone => {
       zone.addEventListener("dragover", handleDragOver);
       zone.addEventListener("dragleave", handleDragLeave);
@@ -468,10 +477,13 @@
       const wordsShuffled = shuffle([...puzzle.correct]);
       wordsShuffled.forEach(word => {
         const wordDiv = document.createElement("div");
-        wordDiv.className = "word";
+        wordDiv.className = "word"; // Changed back to "word" for CSS compatibility
         wordDiv.setAttribute("role", "listitem");
         wordDiv.tabIndex = 0;
         wordDiv.textContent = word;
+        wordDiv.style.padding = "25px"; // Larger padding from current version for better touch targets
+        wordDiv.style.fontSize = "1.8em"; // Larger font from current version for readability
+
         if (window.PointerEvent) {
           wordDiv.addEventListener("pointerdown", handlePointerDown);
           wordDiv.draggable = false;
@@ -480,14 +492,55 @@
           wordDiv.addEventListener("dragstart", handleDragStart);
           wordDiv.addEventListener("dragend", handleDragEnd);
         }
+
+        // Add keyboard navigation (improvement from current version)
         wordDiv.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             currentDropZone.appendChild(wordDiv);
             checkCompletion();
             wordDiv.focus();
+          } else if (e.key === "ArrowLeft" && wordDiv.previousSibling) {
+            currentDropZone.insertBefore(wordDiv, wordDiv.previousSibling);
+          } else if (e.key === "ArrowRight" && wordDiv.nextSibling) {
+            currentDropZone.insertBefore(wordDiv.nextSibling, wordDiv);
           }
         });
+
+        // Add touch support (improvement from current version)
+        wordDiv.addEventListener("touchstart", (e) => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          const wordRect = wordDiv.getBoundingClientRect();
+          const offsetX = touch.clientX - wordRect.left;
+          const offsetY = touch.clientY - wordRect.top;
+          wordDiv.style.position = "absolute";
+          wordDiv.style.zIndex = "1000";
+          wordDiv.classList.add("dragging");
+
+          const handleTouchMove = (moveEvent) => {
+            const moveTouch = moveEvent.touches[0];
+            wordDiv.style.left = `${moveTouch.clientX - offsetX}px`;
+            wordDiv.style.top = `${moveTouch.clientY - offsetY}px`;
+          };
+          const handleTouchEnd = (endEvent) => {
+            document.removeEventListener("touchmove", handleTouchMove);
+            document.removeEventListener("touchend", handleTouchEnd);
+            wordDiv.style.position = "";
+            wordDiv.style.left = "";
+            wordDiv.style.top = "";
+            wordDiv.style.zIndex = "";
+            wordDiv.classList.remove("dragging");
+            const dropTarget = document.elementFromPoint(endEvent.changedTouches[0].clientX, endEvent.changedTouches[0].clientY);
+            if (dropTarget.classList.contains("drop-zone")) {
+              dropTarget.appendChild(wordDiv);
+              checkCompletion();
+            }
+          };
+          document.addEventListener("touchmove", handleTouchMove);
+          document.addEventListener("touchend", handleTouchEnd, { once: true });
+        });
+
         wordBank.appendChild(wordDiv);
       });
     } else {
@@ -504,6 +557,8 @@
           wordDiv.addEventListener("dragend", handleDragEnd);
         }
         wordDiv.tabIndex = 0;
+        wordDiv.style.padding = "25px"; // Larger padding for submitted words
+        wordDiv.style.fontSize = "1.8em"; // Larger font for readability
         currentDropZone.appendChild(wordDiv);
       });
       elements.submitBtn.style.display = "none";
