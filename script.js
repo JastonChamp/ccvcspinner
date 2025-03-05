@@ -5,15 +5,17 @@
   const elements = {
     puzzleContainer: document.getElementById("puzzle-container"),
     hint: document.getElementById("hint"),
-    successMessage: document.getElementById("success-message"),
     progress: document.getElementById("progress"),
     score: document.getElementById("score"),
     progressBar: document.getElementById("progress-bar"),
+    progressLabel: document.getElementById("progress-label"),
     xpDisplay: document.getElementById("xp-display"),
     streakDisplay: document.getElementById("streak-display"),
     badgesList: document.getElementById("badges-list"),
     submitBtn: document.getElementById("submit-btn"),
-    tryAgainBtn: document.getElementById("try-again-btn")
+    tryAgainBtn: document.getElementById("try-again-btn"),
+    modalOverlay: document.getElementById("modal-overlay"),
+    modalContent: document.querySelector("#modal-overlay .modal-content")
   };
 
   // Speech API Utility
@@ -38,7 +40,29 @@
     }
   }
 
-  // Sentence Pools (Full arrays from your input)
+  // Modal Overlay Utility for Feedback
+  function showModal(message, type = "success") {
+    elements.modalContent.textContent = message;
+    elements.modalOverlay.style.display = "flex";
+    // Style modal based on type
+    if (type === "success") {
+      elements.modalContent.classList.remove("modal-error");
+      elements.modalContent.classList.add("modal-success");
+    } else {
+      elements.modalContent.classList.remove("modal-success");
+      elements.modalContent.classList.add("modal-error");
+    }
+    // Animate modal using GSAP
+    gsap.fromTo(elements.modalContent, { scale: 0, opacity: 0 }, { duration: 0.5, scale: 1, opacity: 1, ease: "bounce.out" });
+    setTimeout(() => {
+      gsap.to(elements.modalContent, { duration: 0.5, opacity: 0, onComplete: () => {
+        elements.modalOverlay.style.display = "none";
+        elements.modalContent.style.opacity = 1;
+      }});
+    }, 3000);
+  }
+
+  // Sentence Pools
   const sentencesP1 = [
     "Doreen had a huge birthday party.",
     "We can go out to play.",
@@ -427,7 +451,6 @@
   const displayCurrentPuzzle = () => {
     elements.puzzleContainer.innerHTML = "";
     elements.hint.textContent = "";
-    elements.successMessage.textContent = "";
     stopTimer();
     elements.submitBtn.style.display = "inline-block";
     elements.tryAgainBtn.style.display = "none";
@@ -435,6 +458,7 @@
     if (currentPuzzleIndex >= puzzles.length) {
       elements.puzzleContainer.innerHTML = "<p>Well done! Session complete!</p>";
       speak("Well done! You finished the session!");
+      showModal("Session complete! Great job!", "success");
       return;
     }
 
@@ -459,7 +483,7 @@
     container.appendChild(wordBank);
     container.appendChild(currentDropZone);
 
-    // Add grid layout for better responsiveness (improvement from current version)
+    // Grid layout for better responsiveness
     wordBank.style.display = "grid";
     wordBank.style.gridTemplateColumns = "repeat(auto-fit, minmax(120px, 1fr))";
     wordBank.style.gap = "15px";
@@ -477,12 +501,12 @@
       const wordsShuffled = shuffle([...puzzle.correct]);
       wordsShuffled.forEach(word => {
         const wordDiv = document.createElement("div");
-        wordDiv.className = "word"; // Changed back to "word" for CSS compatibility
+        wordDiv.className = "word";
         wordDiv.setAttribute("role", "listitem");
         wordDiv.tabIndex = 0;
         wordDiv.textContent = word;
-        wordDiv.style.padding = "25px"; // Larger padding from current version for better touch targets
-        wordDiv.style.fontSize = "1.8em"; // Larger font from current version for readability
+        wordDiv.style.padding = "25px";
+        wordDiv.style.fontSize = "1.8em";
 
         if (window.PointerEvent) {
           wordDiv.addEventListener("pointerdown", handlePointerDown);
@@ -493,7 +517,6 @@
           wordDiv.addEventListener("dragend", handleDragEnd);
         }
 
-        // Add keyboard navigation (improvement from current version)
         wordDiv.addEventListener("keydown", (e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -507,7 +530,6 @@
           }
         });
 
-        // Add touch support (improvement from current version)
         wordDiv.addEventListener("touchstart", (e) => {
           e.preventDefault();
           const touch = e.touches[0];
@@ -557,8 +579,8 @@
           wordDiv.addEventListener("dragend", handleDragEnd);
         }
         wordDiv.tabIndex = 0;
-        wordDiv.style.padding = "25px"; // Larger padding for submitted words
-        wordDiv.style.fontSize = "1.8em"; // Larger font for readability
+        wordDiv.style.padding = "25px";
+        wordDiv.style.fontSize = "1.8em";
         currentDropZone.appendChild(wordDiv);
       });
       elements.submitBtn.style.display = "none";
@@ -572,13 +594,14 @@
     elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}${document.getElementById("timer-mode").checked ? ` - Time: ${timeLeft}s` : ""}`;
     elements.score.textContent = `Score: ${score}`;
     elements.progressBar.style.width = `${((currentPuzzleIndex + 1) / sessionLength) * 100}%`;
+    elements.progressLabel.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength}`;
   };
 
   // Helper to determine word role for tooltip
   const getWordRole = (word) => {
     if (/^[A-Z]/.test(word)) return "This is the subject.";
     if (word.match(/^(is|was|are|runs|jumps|eats)/)) return "This is the verb.";
-    if (word.match(/\.$/)) return "This ends the sentence.";
+    if (word.match(/[.!?]$/)) return "This ends the sentence.";
     return "This is part of the sentence.";
   };
 
@@ -690,7 +713,7 @@
   };
   const stopTimer = () => clearInterval(timerId);
 
-  // Gamification
+  // Gamification Panel
   function updateGamificationPanel() {
     elements.xpDisplay.textContent = `XP: ${xp}`;
     elements.streakDisplay.textContent = `Streak: ${streak}`;
@@ -718,10 +741,6 @@
   }
   function getRandomColor() {
     return ['#ff6f61', '#ff9f1c', '#ffcc00', '#98fb98', '#40c4ff'][Math.floor(Math.random() * 5)];
-  }
-
-  function animateSuccessMessage() {
-    gsap.fromTo(elements.successMessage, { scale: 0, opacity: 0 }, { duration: 0.6, scale: 1, opacity: 1, ease: "bounce.out" });
   }
 
   // Hint & Submission
@@ -757,7 +776,7 @@
     const userWordsAdjusted = userWords.map((word, idx) => 
       idx === 0 ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : word
     );
-    const needsPunctuation = !/[.!?]/.test(userWordsAdjusted[userWordsAdjusted.length - 1]);
+    const needsPunctuation = !/[.!?]$/.test(userWordsAdjusted[userWordsAdjusted.length - 1]);
     puzzle.userAnswer = userWordsAdjusted;
     const isCorrect = userWordsAdjusted.join(" ") === puzzle.correct.join(" ");
 
@@ -775,16 +794,15 @@
       if (score === sessionLength && !badges.includes("Level Master")) badges.push("Level Master");
       document.getElementById("success-sound").play();
       speak(`Great job! The sentence is: ${puzzle.correct.join(" ")}`);
-      elements.successMessage.textContent = "✓ Yay! You got it!";
-      animateSuccessMessage();
+      showModal("✓ Yay! You got it!", "success");
       displayConfetti();
-      setTimeout(() => elements.successMessage.textContent = "", 3000);
     } else {
       document.getElementById("error-sound").play();
       streak = 0;
       let feedback = "Oops, not quite! Click the red words to fix them.";
       if (needsPunctuation) feedback += " Add a period or question mark.";
       speak(`${feedback} The correct sentence is: ${puzzle.correct.join(" ")}`);
+      showModal(feedback, "error");
       elements.hint.textContent = feedback;
     }
     updateGamificationPanel();
