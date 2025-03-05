@@ -17,20 +17,46 @@
     prevBtn: document.getElementById("prev-btn"),
     nextBtn: document.getElementById("next-btn"),
     hintBtn: document.getElementById("hint-btn"),
+    clearBtn: document.getElementById("clear-btn"), // New button for clearing drop zone
   };
 
-  // Speech Synthesis with UK Female Voice
+  // Speech Synthesis with UK Female Voice (Fallback to Pleasant US/AU Female Voice)
   function speak(text) {
     if ("speechSynthesis" in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       const setVoice = () => {
         const voices = window.speechSynthesis.getVoices();
+        // Prioritize UK female voice
         let preferredVoice = voices.find(
           (v) =>
             v.name.includes("UK English Female") ||
             (v.lang === "en-GB" && v.gender === "female")
-        ) || voices.find((v) => v.lang === "en-GB") || voices[0];
-        utterance.voice = preferredVoice;
+        );
+        // If no UK female voice, fall back to a pleasant US female voice (e.g., "Samantha" or "Victoria")
+        if (!preferredVoice) {
+          preferredVoice = voices.find(
+            (v) =>
+              (v.name.includes("US English Female") ||
+                v.name.includes("Samantha") ||
+                v.name.includes("Victoria")) &&
+              v.lang === "en-US" &&
+              v.gender === "female"
+          );
+        }
+        // If no US female voice, fall back to a pleasant Australian female voice (e.g., "Karen")
+        if (!preferredVoice) {
+          preferredVoice = voices.find(
+            (v) =>
+              v.name.includes("Australian English Female") ||
+              v.name.includes("Karen") ||
+              (v.lang === "en-AU" && v.gender === "female")
+          );
+        }
+        // Final fallback to any female voice or default voice
+        if (!preferredVoice) {
+          preferredVoice = voices.find((v) => v.gender === "female") || voices[0];
+        }
+        utterance.voice = preferredVoice || voices[0]; // Ensure a voice is set
       };
       if (window.speechSynthesis.getVoices().length) setVoice();
       else
@@ -39,13 +65,16 @@
           setVoice,
           { once: true }
         );
-      utterance.rate = 1;
-      utterance.pitch = 1;
+      // Adjust for clarity and pleasantness
+      utterance.rate = 0.9; // Slightly slower for better clarity
+      utterance.pitch = 1.1; // Slightly higher pitch for a pleasant tone
+      utterance.volume = 1.0; // Maximum volume for audibility on iPads
       window.speechSynthesis.speak(utterance);
     } else {
       console.warn("Speech synthesis not supported on this device.");
     }
   }
+
   const sentencesP1 = [
     "Doreen had a huge birthday party.",
     "We can go out to play.",
@@ -96,7 +125,7 @@
     "The bird builds a nest in the tree.",
     "I draw a picture of my family.",
     "The sun sets behind the hills.",
-    "I sleep early at night."
+    "I sleep early at night.",
   ];
 
   const sentencesP2 = [
@@ -149,7 +178,7 @@
     "I reviewed my notes carefully before the big test.",
     "The library offered a quiet place for everyone to study.",
     "The teacher organized a fun quiz that everyone enjoyed.",
-    "I finished my homework quickly because I understood the topic well."
+    "I finished my homework quickly because I understood the topic well.",
   ];
 
   const sentencesP3 = [
@@ -202,7 +231,7 @@
     "The student solves the puzzle with careful thought.",
     "The cat jumps gracefully onto the cozy chair.",
     "The dog chases its tail happily in the yard.",
-    "The child dreams of a fun and adventurous day."
+    "The child dreams of a fun and adventurous day.",
   ];
 
   const sentencesP4 = [
@@ -255,7 +284,7 @@
     "The boy solved a challenging puzzle with creative thinking.",
     "The teacher complimented the class on their excellent teamwork.",
     "The children shared their unique ideas during a fun group discussion.",
-    "The student finished his project with pride and excitement."
+    "The student finished his project with pride and excitement.",
   ];
 
   const sentencesP5 = [
@@ -308,7 +337,7 @@
     "The boy practices his musical instrument with dedication and passion.",
     "The teacher leads a lively discussion on interesting scientific discoveries.",
     "The class collaborates on a creative writing assignment that sparks imagination.",
-    "The student reflects on his learning journey with enthusiasm and pride."
+    "The student reflects on his learning journey with enthusiasm and pride.",
   ];
 
   const sentencesP6 = [
@@ -361,15 +390,14 @@
     "During group work, the students learned the importance of communication and collaboration.",
     "The classroom buzzed with energy as the students engaged in a lively discussion about current events.",
     "By the end of the lesson, the students felt inspired to further explore the topic on their own.",
-    "The dedicated student looked forward to the future with optimism and a thirst for knowledge."
+    "The dedicated student looked forward to the future with optimism and a thirst for knowledge.",
   ];
 
   const sessionLength = 5;
   let puzzles = [];
   let currentPuzzleIndex = 0;
   let score = 0;
-  let currentLevel =
-    localStorage.getItem("currentLevel") || "p3";
+  let currentLevel = localStorage.getItem("currentLevel") || "p3";
   let xp = parseInt(localStorage.getItem("xp")) || 0;
   let streak = parseInt(localStorage.getItem("streak")) || 0;
   let badges = JSON.parse(localStorage.getItem("badges")) || [];
@@ -458,6 +486,7 @@
     elements.prevBtn.style.display = "inline-block";
     elements.nextBtn.style.display = "inline-block";
     elements.hintBtn.style.display = "inline-block";
+    elements.clearBtn.style.display = "inline-block"; // Show clear button
 
     if (currentPuzzleIndex >= puzzles.length) {
       elements.puzzleContainer.innerHTML =
@@ -526,7 +555,10 @@
         wordDiv.addEventListener("touchstart", showTouchTooltip, {
           passive: true,
         });
-        wordBank.appendChild(wordDiv);
+        wordDiv.addEventListener("dblclick", removeWord); // Allow double-click to remove
+        if (wordBank.querySelector(`.word:text="${word}"`)) {
+          wordBank.appendChild(wordDiv);
+        }
       });
       // Add placeholder text to drop zone when empty
       if (currentDropZone.children.length === 0) {
@@ -583,11 +615,16 @@
   };
   const handleDrop = (e) => {
     e.preventDefault();
-    if (e.currentTarget.classList.contains("drop-zone") && draggedItem) {
+    if (
+      (e.currentTarget.classList.contains("drop-zone") ||
+        e.currentTarget.classList.contains("word-bank")) &&
+      draggedItem
+    ) {
       e.currentTarget.classList.remove("active");
-      // Remove placeholder if it exists
+      // Remove placeholder if dropping into drop-zone
       const placeholder = e.currentTarget.querySelector(".drop-placeholder");
-      if (placeholder) placeholder.remove();
+      if (placeholder && e.currentTarget.classList.contains("drop-zone"))
+        placeholder.remove();
       e.currentTarget.appendChild(draggedItem);
       gsap.fromTo(
         draggedItem,
@@ -595,6 +632,19 @@
         { scale: 1, opacity: 1, duration: 0.3 }
       );
       checkCompletion();
+      // Re-add placeholder to drop-zone if empty
+      if (
+        e.currentTarget.classList.contains("drop-zone") &&
+        e.currentTarget.children.length === 0
+      ) {
+        const newPlaceholder = document.createElement("div");
+        newPlaceholder.className = "drop-placeholder";
+        newPlaceholder.textContent =
+          "Drag words here to build your sentence!";
+        newPlaceholder.style.color = "#666";
+        newPlaceholder.style.fontStyle = "italic";
+        e.currentTarget.appendChild(newPlaceholder);
+      }
     }
   };
 
@@ -679,7 +729,7 @@
         tip = "This ends the sentence.";
         break;
       default:
-        tip = "Drag me to build the sentence!";
+        tip = "Drag me to build the sentence! Double-click to remove or drag back to adjust.";
     }
     const tooltip = document.createElement("div");
     tooltip.textContent = tip;
@@ -724,7 +774,7 @@
           tip = "This ends the sentence.";
           break;
         default:
-          tip = "Drag me to build the sentence!";
+          tip = "Drag me to build the sentence! Double-tap to remove or drag back to adjust.";
       }
       const tooltip = document.createElement("div");
       tooltip.textContent = tip;
@@ -748,7 +798,43 @@
   };
 
   const hideTooltip = () => {
-    // Handled by the 'mouseout' event in showTooltip
+    // Handled by the 'mouseout' or 'touchend' event in showTooltip/showTouchTooltip
+  };
+
+  const removeWord = (e) => {
+    const word = e.target;
+    const wordBank = document.querySelector(".word-bank");
+    if (word.classList.contains("word")) {
+      // Remove from drop zone and return to word bank if in drop zone
+      if (word.parentElement.classList.contains("drop-zone")) {
+        const newWord = word.cloneNode(true);
+        newWord.draggable = true;
+        newWord.addEventListener("dragstart", handleDragStart);
+        newWord.addEventListener("dragend", handleDragEnd);
+        newWord.addEventListener("mouseover", showTooltip);
+        newWord.addEventListener("mouseout", hideTooltip);
+        newWord.addEventListener("touchstart", showTouchTooltip, {
+          passive: true,
+        });
+        newWord.addEventListener("dblclick", removeWord);
+        wordBank.appendChild(newWord);
+        word.remove();
+        speak("Word removed and returned to the word bank.");
+      }
+      checkCompletion();
+      // Re-add placeholder to drop-zone if empty
+      if (
+        word.parentElement.classList.contains("drop-zone") &&
+        word.parentElement.children.length === 0
+      ) {
+        const placeholder = document.createElement("div");
+        placeholder.className = "drop-placeholder";
+        placeholder.textContent = "Drag words here to build your sentence!";
+        placeholder.style.color = "#666";
+        placeholder.style.fontStyle = "italic";
+        word.parentElement.appendChild(placeholder);
+      }
+    }
   };
 
   const showHint = () => {
@@ -929,6 +1015,36 @@
     displayCurrentPuzzle();
   };
 
+  const clearDropZone = () => {
+    if (currentDropZone) {
+      const wordBank = document.querySelector(".word-bank");
+      Array.from(currentDropZone.children).forEach((word) => {
+        if (word.classList.contains("word")) {
+          const newWord = word.cloneNode(true);
+          newWord.draggable = true;
+          newWord.addEventListener("dragstart", handleDragStart);
+          newWord.addEventListener("dragend", handleDragEnd);
+          newWord.addEventListener("mouseover", showTooltip);
+          newWord.addEventListener("mouseout", hideTooltip);
+          newWord.addEventListener("touchstart", showTouchTooltip, {
+            passive: true,
+          });
+          newWord.addEventListener("dblclick", removeWord);
+          wordBank.appendChild(newWord);
+          word.remove();
+        }
+      });
+      const placeholder = document.createElement("div");
+      placeholder.className = "drop-placeholder";
+      placeholder.textContent = "Drag words here to build your sentence!";
+      placeholder.style.color = "#666";
+      placeholder.style.fontStyle = "italic";
+      currentDropZone.appendChild(placeholder);
+      checkCompletion();
+      speak("Drop zone cleared. Words returned to the word bank.");
+    }
+  };
+
   const toggleFullScreen = () => {
     if (!document.fullscreenElement)
       document.documentElement.requestFullscreen();
@@ -945,6 +1061,7 @@
   elements.tryAgainBtn.addEventListener("click", tryAgain);
   elements.prevBtn.addEventListener("click", prevPuzzle);
   elements.nextBtn.addEventListener("click", nextPuzzle);
+  elements.clearBtn.addEventListener("click", clearDropZone); // New event listener for clear button
   document
     .getElementById("reset-btn")
     .addEventListener("click", resetQuiz);
