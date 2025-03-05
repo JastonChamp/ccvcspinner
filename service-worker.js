@@ -8,6 +8,7 @@ const urlsToCache = [
   '/sounds/error.mp3',
   '/images/flower.svg',
   '/images/small-flower.svg',
+  '/images/mascot.png',
   '/favicon.ico',
   '/manifest.json',
   'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js'
