@@ -459,21 +459,34 @@
   };
 
   const getWordRole = (word, index, correctSentence) => {
-    if (index === 0 && /^[A-Z]/.test(word)) return "subject"; // Starts with capital, usually the subject
+    // Check if the word starts with a capital letter and is likely the subject
+    if (index === 0 && /^[A-Z]/.test(word)) return "subject";
+
+    // Check for common verbs (expanded list for accuracy)
     if (
       word.match(
-        /^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play)/i
+        /^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags)/i
       )
     )
-      return "verb"; // Common verbs
+      return "verb";
+
+    // Check for common objects (nouns or noun phrases, excluding verbs and punctuation)
     if (
       index > 1 &&
       index < correctSentence.length - 1 &&
-      !word.match(/[.!?]$/)
+      !word.match(/[.!?]$/) &&
+      !word.match(
+        /^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags)/i
+      ) &&
+      word.match(/^[a-zA-Z\s]+$/) // Ensure it's a word or phrase (no punctuation)
     )
-      return "object"; // Between subject and end
-    if (word.match(/[.!?]$/)) return "end"; // Punctuation marks
-    return "other"; // Fallback for connectors, adjectives, etc.
+      return "object";
+
+    // Check for end punctuation
+    if (word.match(/[.!?]$/)) return "end";
+
+    // Default to other for connectors, adjectives, etc.
+    return "other";
   };
 
   const displayCurrentPuzzle = () => {
@@ -733,15 +746,25 @@
     tooltip.textContent = tip;
     tooltip.className = "word-tooltip";
     tooltip.style.position = "absolute";
-    tooltip.style.background = "rgba(0, 0, 0, 0.7)";
+    tooltip.style.background = "rgba(0, 0, 0, 0.8)";
     tooltip.style.color = "white";
-    tooltip.style.padding = "5px 10px";
-    tooltip.style.borderRadius = "4px";
-    tooltip.style.fontSize = "0.8em";
+    tooltip.style.padding = "8px 12px";
+    tooltip.style.borderRadius = "10px";
+    tooltip.style.fontSize = "1em";
     tooltip.style.zIndex = "10";
     const rect = e.target.getBoundingClientRect();
-    tooltip.style.top = `${rect.bottom + 5}px`;
+    // Position tooltip closer to the word, accounting for viewport and scroll
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    tooltip.style.top = `${rect.bottom + scrollY + 5}px`;
     tooltip.style.left = `${rect.left}px`;
+    // Ensure tooltip stays within viewport
+    const tooltipRect = tooltip.getBoundingClientRect();
+    if (tooltipRect.right > window.innerWidth) {
+      tooltip.style.left = `${window.innerWidth - tooltipRect.width - 5}px`;
+    }
+    if (tooltipRect.bottom > window.innerHeight) {
+      tooltip.style.top = `${rect.top + scrollY - tooltipRect.height - 5}px`;
+    }
     document.body.appendChild(tooltip);
 
     e.target.addEventListener("mouseout", () => tooltip.remove(), { once: true });
@@ -785,8 +808,17 @@
       tooltip.style.fontSize = "0.8em";
       tooltip.style.zIndex = "10";
       const rect = e.target.getBoundingClientRect();
-      tooltip.style.top = `${rect.bottom + 5}px`;
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      tooltip.style.top = `${rect.bottom + scrollY + 5}px`;
       tooltip.style.left = `${rect.left}px`;
+      // Ensure tooltip stays within viewport
+      const tooltipRect = tooltip.getBoundingClientRect();
+      if (tooltipRect.right > window.innerWidth) {
+        tooltip.style.left = `${window.innerWidth - tooltipRect.width - 5}px`;
+      }
+      if (tooltipRect.bottom > window.innerHeight) {
+        tooltip.style.top = `${rect.top + scrollY - tooltipRect.height - 5}px`;
+      }
       document.body.appendChild(tooltip);
 
       e.target.addEventListener("touchend", () => tooltip.remove(), { once: true });
@@ -845,39 +877,51 @@
       );
       if (hintCount === 0) {
         hintCount++;
-        const subjectWord = puzzle.correct[0];
-        elements.hint.textContent = `Who does it? The subject is "${subjectWord}".`;
-        speak(`Who does it? The subject is ${subjectWord}.`);
-        wordBankWords.forEach((word) => {
-          if (word.textContent === subjectWord) {
-            word.classList.add("hint-subject");
-            setTimeout(() => word.classList.remove("hint-subject"), 3000);
-          }
-        });
+        const subjectWord = puzzle.correct[0]; // Subject is always the first word (capitalized)
+        if (subjectWord) {
+          elements.hint.textContent = `Who does it? The subject is "${subjectWord}".`;
+          speak(`Who does it? The subject is ${subjectWord}.`);
+          wordBankWords.forEach((word) => {
+            if (word.textContent === subjectWord) {
+              word.classList.add("hint-subject");
+              setTimeout(() => word.classList.remove("hint-subject"), 3000);
+            }
+          });
+        } else {
+          elements.hint.textContent = "No subject found! Try building the sentence.";
+          speak("No subject found! Try building the sentence.");
+        }
       } else if (hintCount === 1) {
         hintCount++;
+        // Find the first verb in the sentence
         const verbIndex = puzzle.correct.findIndex(
           (word) =>
             getWordRole(word, puzzle.correct.indexOf(word), puzzle.correct) ===
             "verb"
         );
-        const verbWord = puzzle.correct[verbIndex];
-        elements.hint.textContent = `What happens? The action word is "${verbWord}".`;
-        speak(`What happens? The action word is ${verbWord}.`);
-        wordBankWords.forEach((word) => {
-          if (word.textContent === verbWord) {
-            word.classList.add("hint-verb");
-            setTimeout(() => word.classList.remove("hint-verb"), 3000);
-          }
-        });
+        const verbWord = verbIndex !== -1 ? puzzle.correct[verbIndex] : null;
+        if (verbWord) {
+          elements.hint.textContent = `What happens? The action word is "${verbWord}".`;
+          speak(`What happens? The action word is ${verbWord}.`);
+          wordBankWords.forEach((word) => {
+            if (word.textContent === verbWord) {
+              word.classList.add("hint-verb");
+              setTimeout(() => word.classList.remove("hint-verb"), 3000);
+            }
+          });
+        } else {
+          elements.hint.textContent = "No action word found! Check the sentence.";
+          speak("No action word found! Check the sentence.");
+        }
       } else if (hintCount === 2) {
         hintCount++;
+        // Find the first object (noun or noun phrase, not a verb or punctuation)
         const objectIndex = puzzle.correct.findIndex(
           (word, idx) =>
             getWordRole(word, idx, puzzle.correct) === "object"
         );
-        if (objectIndex !== -1) {
-          const objectWord = puzzle.correct[objectIndex];
+        const objectWord = objectIndex !== -1 ? puzzle.correct[objectIndex] : null;
+        if (objectWord) {
           elements.hint.textContent = `What’s it about? The object is "${objectWord}".`;
           speak(`What’s it about? The object is ${objectWord}.`);
           wordBankWords.forEach((word) => {
@@ -887,9 +931,8 @@
             }
           });
         } else {
-          elements.hint.textContent =
-            "No more hints! Try putting the words together.";
-          speak("No more hints! Try putting the words together.");
+          elements.hint.textContent = "No object found! Try building the sentence.";
+          speak("No object found! Try building the sentence.");
         }
       } else {
         elements.hint.textContent = "No more hints! You can do it!";
@@ -1076,9 +1119,21 @@
     .addEventListener("click", toggleFullScreen);
   document
     .getElementById("theme-toggle")
-    .addEventListener("click", () =>
-      document.body.classList.toggle("light-theme")
-    );
+    .addEventListener("click", () => {
+      const body = document.body;
+      if (body.classList.contains("pastel-theme")) {
+        body.classList.remove("pastel-theme");
+        body.classList.add("rainbow-theme");
+        speak("Switched to Rainbow Fun theme!");
+      } else if (body.classList.contains("rainbow-theme")) {
+        body.classList.remove("rainbow-theme");
+        // Back to default (Bright & Playful, no class needed)
+        speak("Switched to Bright Playful theme!");
+      } else {
+        body.classList.add("pastel-theme");
+        speak("Switched to Pastel Calm theme!");
+      }
+    });
 
   document.addEventListener("DOMContentLoaded", () => {
     generatePuzzles();
