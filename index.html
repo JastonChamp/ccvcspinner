@@ -6,7 +6,7 @@
   <title>Word Order Adventure</title>
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
   <header>
@@ -14,7 +14,7 @@
     <p class="instructions">
       Drag the words below to make a sentence or question!<br>
       Start with a capital letter and end with a full stop or question mark.<br>
-      <span style="font-size: 0.8em; color: var(--accent-color);">(Tap and hold on phones)</span>
+      <span style="font-size: 0.9em; color: var(--accent-color);">(Tap and hold on phones)</span>
     </p>
     <div class="mascot-container">
       <img src="images/mascot.png" alt="Friendly Flower Mascot" id="mascot">
@@ -75,6 +75,8 @@
         const mascot = document.getElementById("mascot");
         if (mascot) {
           gsap.to(mascot, { duration: 2, rotation: 360, ease: "power1.inOut", repeat: -1 });
+          // Add waving animation for mascot
+          gsap.to(mascot, { duration: 3, y: 10, yoyo: true, repeat: -1, ease: "sine.inOut" });
         }
       };
       document.body.appendChild(script);
