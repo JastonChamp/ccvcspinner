@@ -4,19 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Word Order Adventure</title>
-  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet" onerror="document.fonts.load('700 1em Comic Neue', '');">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.6.1/gsap.min.js" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" onerror="document.write('<script src=\"/assets/gsap.min.js\"></script>')"></script>
 </head>
 <body>
   <header>
     <h1>Word Order Adventure</h1>
     <p class="instructions">Drag the words below to make a sentence or question!<br>Start with a capital letter and end with a full stop or question mark.<br>(Tap and hold on phones)</p>
     <div class="mascot-container">
-      <img src="images/mascot.png" alt="Mascot Flower">
+      <img src="images/mascot.png" alt="Flower mascot waving to welcome players">
     </div>
-    <div class="controls">
-      <label>Pick Your Level:</label>
-      <select id="level-select">
+    <form class="controls">
+      <label for="level-select">Pick Your Level:</label>
+      <select id="level-select" name="level">
         <option value="p1">Primary 1</option>
         <option value="p2">Primary 2</option>
         <option value="p3" selected>Primary 3</option>
@@ -25,40 +27,39 @@
         <option value="p6">Primary 6</option>
       </select>
       <label><input type="checkbox" id="timer-mode"> Timer Mode (30s)</label>
-      <button id="listen-instructions-btn" class="instruction-btn">Hear Instructions</button>
-      <button id="fullscreen-btn" class="instruction-btn">Fullscreen</button>
-      <button id="theme-toggle" class="instruction-btn">Change Theme</button>
-    </div>
+      <button id="listen-instructions-btn" type="button" aria-label="Listen to instructions">Hear Instructions</button>
+      <button id="fullscreen-btn" type="button" aria-label="Toggle fullscreen">Fullscreen</button>
+      <button id="theme-toggle" type="button" aria-label="Change theme">Change Theme</button>
+    </form>
   </header>
-  <div class="game-container">
-    <div id="progress-bar-container">
+  <main class="game-container">
+    <section id="progress-bar-container">
       <div id="progress-bar"><span id="progress-label"></span></div>
-    </div>
-    <div id="progress-indicator"></div>
-    <div id="puzzle-container"></div>
-    <div id="gamification-panel">
+    </section>
+    <p id="progress-indicator" aria-live="polite"></p>
+    <section id="puzzle-container" aria-live="polite"></section>
+    <section id="gamification-panel">
       <p>XP: <span id="xp-display">0</span></p>
       <p>Streak: <span id="streak-display">0</span></p>
       <p>Badges: <span id="badges-list">None</span></p>
-    </div>
+    </section>
     <div class="nav-buttons">
-      <button id="prev-btn">Back</button>
-      <button id="hint-btn">Get a Hint</button>
-      <button id="submit-btn">Check Answer</button>
-      <button id="try-again-btn" style="display: none;">Try Again</button>
-      <button id="next-btn">Next</button>
-      <button id="clear-btn">Clear</button>
-      <button id="learn-btn">Learn</button>
+      <button id="prev-btn" type="button" aria-label="Previous puzzle">Back</button>
+      <button id="hint-btn" type="button" aria-label="Get a hint">Get a Hint</button>
+      <button id="submit-btn" type="button" aria-label="Check your sentence" aria-disabled="true">Check Answer</button>
+      <button id="try-again-btn" type="button" aria-label="Try again" style="display: none;">Try Again</button>
+      <button id="next-btn" type="button" aria-label="Next puzzle">Next</button>
+      <button id="clear-btn" type="button" aria-label="Clear drop zone">Clear</button>
+      <button id="learn-btn" type="button" aria-label="Learn more">Learn</button>
     </div>
     <div class="feedback">
-      <p id="hint"></p>
-      <p id="success-message"></p>
+      <p id="hint" aria-live="assertive"></p>
+      <p id="success-message" aria-live="assertive"></p>
     </div>
-    <button id="reset-btn">Start Over</button>
-    <audio id="success-sound" src="audio/success.mp3"></audio>
-    <audio id="error-sound" src="audio/error.mp3"></audio>
-  </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.6.1/gsap.min.js"></script>
+    <button id="reset-btn" type="button" aria-label="Start over">Start Over</button>
+  </main>
+  <audio id="success-sound" src="images/success.mp3" preload="auto"></audio>
+  <audio id="error-sound" src="images/error.mp3" preload="auto"></audio>
   <script src="script.js"></script>
 </body>
 </html>
