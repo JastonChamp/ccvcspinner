@@ -51,7 +51,7 @@
     if (window.speechSynthesis.getVoices().length === 0) {
       window.speechSynthesis.onvoiceschanged = () => {
         loadVoices();
-        window.speechSynthesis.onvoiceschanged = null; // Prevent multiple triggers
+        window.speechSynthesis.onvoiceschanged = null;
       };
     } else {
       loadVoices();
@@ -293,7 +293,7 @@
 
   // Display the current puzzle on the screen
   const displayCurrentPuzzle = () => {
-    if (!elements.puzzleContainer) return; // Safety check
+    if (!elements.puzzleContainer) return;
     elements.puzzleContainer.innerHTML = "";
     elements.hint.textContent = "";
     elements.successMessage.textContent = "";
@@ -388,7 +388,13 @@
         const wordDiv = document.createElement("div");
         wordDiv.className = "word";
         wordDiv.textContent = word;
-        wordDiv.classList.add(word === puzzle.correct[index] ? "correct" : "incorrect");
+        const isCorrect = word === puzzle.correct[index];
+        wordDiv.classList.add(isCorrect ? "correct" : "incorrect");
+        wordDiv.dataset.correctWord = puzzle.correct[index]; // Store correct word for correction
+        if (!isCorrect) {
+          wordDiv.style.cursor = "pointer"; // Indicate clickable
+          wordDiv.addEventListener("click", correctWord); // Add click handler for correction
+        }
         currentDropZone.appendChild(wordDiv);
       });
       elements.submitBtn.style.display = "none";
@@ -457,7 +463,7 @@
   // Timer for timed mode
   const startTimer = () => {
     if (!document.getElementById("timer-mode").checked) return;
-    stopTimer(); // Ensure no duplicate timers
+    stopTimer();
     timerId = setInterval(() => {
       timeLeft--;
       elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength} - Time: ${timeLeft}s`;
@@ -509,16 +515,19 @@
     gsap.fromTo(elements.successMessage, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "bounce.out" });
   }
 
-  // Show tooltip on hover
+  // Show tooltip on hover with word role
   const showTooltip = (e) => {
-    const role = e.target.dataset.role;
+    const word = e.target.textContent;
+    const puzzle = puzzles[currentPuzzleIndex];
+    const index = puzzle.correct.indexOf(word);
+    const role = index !== -1 ? getWordRole(word, index, puzzle.correct) : "unknown";
     let tip = "";
     switch (role) {
-      case "subject": tip = "Who does it?"; break;
-      case "verb": tip = "What happens?"; break;
-      case "object": tip = "What’s it about?"; break;
-      case "end": tip = "This ends the sentence."; break;
-      default: tip = "Drag me to build the sentence! Double-click to remove or drag back to adjust.";
+      case "subject": tip = "Subject: Who does it?"; break;
+      case "verb": tip = "Verb: What happens?"; break;
+      case "object": tip = "Object: What’s it about?"; break;
+      case "end": tip = "End: This ends the sentence."; break;
+      default: tip = "Other: Part of the sentence.";
     }
     const tooltip = document.createElement("div");
     tooltip.textContent = tip;
@@ -551,14 +560,17 @@
       document.removeEventListener("touchend", touchEnd);
     };
     timer = setTimeout(() => {
-      const role = e.target.dataset.role;
+      const word = e.target.textContent;
+      const puzzle = puzzles[currentPuzzleIndex];
+      const index = puzzle.correct.indexOf(word);
+      const role = index !== -1 ? getWordRole(word, index, puzzle.correct) : "unknown";
       let tip = "";
       switch (role) {
-        case "subject": tip = "Who does it?"; break;
-        case "verb": tip = "What happens?"; break;
-        case "object": tip = "What’s it about?"; break;
-        case "end": tip = "This ends the sentence."; break;
-        default: tip = "Drag me to build the sentence! Double-tap to remove or drag back to adjust.";
+        case "subject": tip = "Subject: Who does it?"; break;
+        case "verb": tip = "Verb: What happens?"; break;
+        case "object": tip = "Object: What’s it about?"; break;
+        case "end": tip = "End: This ends the sentence."; break;
+        default: tip = "Other: Part of the sentence.";
       }
       const tooltip = document.createElement("div");
       tooltip.textContent = tip;
@@ -612,6 +624,35 @@
       placeholder.className = "drop-placeholder";
       placeholder.textContent = "Drag words here to build your sentence!";
       currentDropZone.appendChild(placeholder);
+    }
+  };
+
+  // Correct a wrong word on click
+  const correctWord = (e) => {
+    const wordDiv = e.target;
+    if (!wordDiv.classList.contains("incorrect")) return;
+    const correctWord = wordDiv.dataset.correctWord;
+    wordDiv.textContent = correctWord;
+    wordDiv.classList.remove("incorrect");
+    wordDiv.classList.add("correct");
+    wordDiv.style.cursor = "default"; // Remove pointer cursor after correction
+    wordDiv.removeEventListener("click", correctWord); // Remove click handler
+    speak(`Corrected to "${correctWord}".`);
+    const puzzle = puzzles[currentPuzzleIndex];
+    puzzle.userAnswer = Array.from(currentDropZone.children).map((word) => word.textContent);
+    const isNowCorrect = puzzle.userAnswer.join(" ") === puzzle.correct.join(" ");
+    if (isNowCorrect) {
+      score++;
+      correctCount++;
+      streak++;
+      xp += 5; // Partial credit for correction
+      document.getElementById("success-sound").play();
+      speak(`Great job! The sentence is now correct: ${puzzle.correct.join(" ")}`);
+      elements.successMessage.textContent = "✓ Yay! You fixed it!";
+      animateSuccessMessage();
+      displayConfetti();
+      setTimeout(() => (elements.successMessage.textContent = ""), 3000);
+      updateGamificationPanel();
     }
   };
 
@@ -690,7 +731,13 @@
 
     Array.from(currentDropZone.children).forEach((wordElem, index) => {
       wordElem.classList.remove("correct", "incorrect");
-      wordElem.classList.add(wordElem.textContent === puzzle.correct[index] ? "correct" : "incorrect");
+      const isWordCorrect = wordElem.textContent === puzzle.correct[index];
+      wordElem.classList.add(isWordCorrect ? "correct" : "incorrect");
+      if (!isWordCorrect) {
+        wordElem.dataset.correctWord = puzzle.correct[index];
+        wordElem.style.cursor = "pointer";
+        wordElem.addEventListener("click", correctWord);
+      }
     });
 
     if (isCorrect && !needsPunctuation) {
@@ -710,7 +757,7 @@
     } else {
       document.getElementById("error-sound").play();
       streak = 0;
-      let feedback = "Oops, not quite! ";
+      let feedback = "Oops, not quite! Click incorrect words to fix them. ";
       if (!isCorrect) feedback += "Check your word order. ";
       if (needsPunctuation) feedback += "Add a period or question mark. ";
       if (!isCorrect && userWordsAdjusted[0] !== puzzle.correct[0]) feedback += "Start with the subject! ";
