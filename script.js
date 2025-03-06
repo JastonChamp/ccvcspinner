@@ -19,7 +19,6 @@
     nextBtn: document.getElementById("next-btn"),
     hintBtn: document.getElementById("hint-btn"),
     clearBtn: document.getElementById("clear-btn"),
-    learnBtn: document.getElementById("learn-btn"),
     progressIndicator: document.getElementById("progress-indicator"),
   };
 
@@ -344,7 +343,6 @@
     elements.nextBtn.style.display = "inline-block";
     elements.hintBtn.style.display = "inline-block";
     elements.clearBtn.style.display = "inline-block";
-    elements.learnBtn.style.display = "inline-block";
 
     // Check if the session is complete and evaluate mastery
     if (currentPuzzleIndex >= puzzles.length) {
@@ -434,6 +432,10 @@
         wordDiv.className = "word";
         wordDiv.textContent = word;
         wordDiv.classList.add(word === puzzle.correct[index] ? "correct" : "incorrect");
+        // Add click event for incorrect words to rearrange
+        if (wordDiv.classList.contains("incorrect")) {
+          wordDiv.addEventListener("click", () => rearrangeToCorrect(index));
+        }
         currentDropZone.appendChild(wordDiv);
       });
       elements.submitBtn.style.display = "none";
@@ -732,7 +734,7 @@
     }
   };
 
-  // Submit and evaluate the player's answer
+  // Submit and evaluate the player's answer with correction feature
   const submitAnswer = () => {
     const puzzle = puzzles[currentPuzzleIndex];
     puzzle.attempts++;
@@ -749,6 +751,10 @@
     Array.from(currentDropZone.children).forEach((wordElem, index) => {
       wordElem.classList.remove("correct", "incorrect");
       wordElem.classList.add(wordElem.textContent === puzzle.correct[index] ? "correct" : "incorrect");
+      // Add click event for incorrect words to rearrange
+      if (wordElem.classList.contains("incorrect")) {
+        wordElem.addEventListener("click", () => rearrangeToCorrect(index));
+      }
     });
 
     if (isCorrect && !needsPunctuation) {
@@ -787,6 +793,46 @@
     }
     updateGamificationPanel();
     displayCurrentPuzzle();
+  };
+
+  // Rearrange incorrect word to its correct position with animation
+  const rearrangeToCorrect = (index) => {
+    const puzzle = puzzles[currentPuzzleIndex];
+    const correctWord = puzzle.correct[index];
+    const currentWordDiv = currentDropZone.children[index];
+    if (currentWordDiv && currentWordDiv.classList.contains("incorrect")) {
+      // Animate the correction
+      gsap.to(currentWordDiv, {
+        duration: 0.5,
+        opacity: 0,
+        scale: 0.5,
+        onComplete: () => {
+          currentWordDiv.textContent = correctWord;
+          currentWordDiv.classList.remove("incorrect");
+          currentWordDiv.classList.add("correct");
+          gsap.fromTo(currentWordDiv, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.5 });
+          speak(`Corrected to: ${correctWord} at position ${index + 1}.`);
+          elements.hint.textContent = `Corrected to: ${correctWord} at position ${index + 1}. The right order is ${puzzle.correct.join(" ")}.`;
+        },
+      });
+      // Update userAnswer to reflect correction
+      puzzle.userAnswer[index] = correctWord;
+      // Check if the entire sentence is now correct after correction
+      const isNowCorrect = puzzle.userAnswer.join(" ") === puzzle.correct.join(" ");
+      if (isNowCorrect) {
+        score++;
+        correctCount++;
+        streak++;
+        xp += 5; // Bonus XP for self-correction
+        if (!badges.includes("Self-Corrector") && streak >= 3) badges.push("Self-Corrector");
+        document.getElementById("success-sound").play();
+        elements.successMessage.textContent = "✓ Great job fixing it!";
+        animateSuccessMessage();
+        displayConfetti();
+        setTimeout(() => (elements.successMessage.textContent = ""), 3000);
+      }
+      updateGamificationPanel();
+    }
   };
 
   // Retry the current puzzle
@@ -923,11 +969,6 @@
   elements.prevBtn.addEventListener("click", prevPuzzle);
   elements.nextBtn.addEventListener("click", nextPuzzle);
   elements.clearBtn.addEventListener("click", clearDropZone);
-  elements.learnBtn.addEventListener("click", () => {
-    elements.puzzleContainer.innerHTML =
-      "<h3>Learn Sentence Basics</h3><p>A sentence has a subject (who), a verb (what happens), and often an object (what’s affected). Example: 'The dog (subject) runs (verb) fast (object).'</p>";
-    speak("Learn Sentence Basics: A sentence has a subject, a verb, and often an object.");
-  });
   document.getElementById("reset-btn").addEventListener("click", resetQuiz);
   document.getElementById("level-select").addEventListener("change", (e) => {
     currentLevel = e.target.value;
