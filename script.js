@@ -29,25 +29,24 @@
       console.warn("Speech synthesis not supported on this device.");
       return;
     }
-
     const utterance = new SpeechSynthesisUtterance(text);
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
-      let preferredVoice = voices.find(
-        (v) => v.lang === "en-GB" && v.name.includes("Female")
-      ) || voices.find(
-        (v) => v.lang === "en-US" && (v.name.includes("Samantha") || v.name.includes("Victoria"))
-      ) || voices.find(
-        (v) => v.lang === "en-AU" && v.name.includes("Karen")
-      ) || voices.find((v) => v.lang.includes("en"));
-      
+      let preferredVoice =
+        voices.find((v) => v.lang === "en-GB" && v.name.includes("Female")) ||
+        voices.find(
+          (v) =>
+            v.lang === "en-US" &&
+            (v.name.includes("Samantha") || v.name.includes("Victoria"))
+        ) ||
+        voices.find((v) => v.lang === "en-AU" && v.name.includes("Karen")) ||
+        voices.find((v) => v.lang.includes("en"));
       utterance.voice = preferredVoice || voices[0];
       utterance.rate = 0.9;
       utterance.pitch = 1.1;
       utterance.volume = 1.0;
       window.speechSynthesis.speak(utterance);
     };
-
     if (window.speechSynthesis.getVoices().length === 0) {
       window.speechSynthesis.onvoiceschanged = () => {
         loadVoices();
@@ -57,6 +56,14 @@
       loadVoices();
     }
   }
+
+  // NEW: Hide tooltip function to remove any lingering tooltips
+  const hideTooltip = (e) => {
+    const tooltip = document.querySelector(".word-tooltip");
+    if (tooltip) {
+      tooltip.remove();
+    }
+  };
 
   // Sentence pools for each level
   const sentencesP1 = [
@@ -230,30 +237,36 @@
   let xp = parseInt(localStorage.getItem("xp")) || 0;
   let streak = parseInt(localStorage.getItem("streak")) || 0;
   let badges = JSON.parse(localStorage.getItem("badges")) || [];
-  let timeLeft = 30, timerId = null;
+  let timeLeft = 30,
+    timerId = null;
   let hintCount = 0;
   let currentDropZone = null;
   let puzzleAttempts = 0;
   let correctCount = 0;
   const today = new Date().toDateString();
-  if (localStorage.getItem("lastPlayDate") && localStorage.getItem("lastPlayDate") !== today) {
+  if (
+    localStorage.getItem("lastPlayDate") &&
+    localStorage.getItem("lastPlayDate") !== today
+  ) {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    if (localStorage.getItem("lastPlayDate") !== yesterday.toDateString()) streak = 0;
+    if (localStorage.getItem("lastPlayDate") !== yesterday.toDateString())
+      streak = 0;
   }
 
   // Utility function to shuffle an array
   const shuffle = (array) => array.sort(() => Math.random() - 0.5);
 
   // Get sentences for the current level
-  const getSentencesForLevel = (level) => ({
-    p1: sentencesP1,
-    p2: sentencesP2,
-    p3: sentencesP3,
-    p4: sentencesP4,
-    p5: sentencesP5,
-    p6: sentencesP6,
-  }[level] || sentencesP3);
+  const getSentencesForLevel = (level) =>
+    ({
+      p1: sentencesP1,
+      p2: sentencesP2,
+      p3: sentencesP3,
+      p4: sentencesP4,
+      p5: sentencesP5,
+      p6: sentencesP6,
+    }[level] || sentencesP3);
 
   // Generate puzzles for the current session
   const generatePuzzles = () => {
@@ -279,14 +292,30 @@
     const totalWords = puzzles[currentPuzzleIndex].correct.length;
     const droppedWords = currentDropZone.children.length;
     elements.submitBtn.disabled = droppedWords !== totalWords;
-    elements.submitBtn.style.backgroundColor = elements.submitBtn.disabled ? "#cccccc" : "#4CAF50";
+    elements.submitBtn.style.backgroundColor = elements.submitBtn.disabled
+      ? "#cccccc"
+      : "#4CAF50";
   };
 
   // Improved function to determine the role of a word in a sentence
   const getWordRole = (word, index, correctSentence) => {
     if (index === 0 && /^[A-Z]/.test(word)) return "subject";
-    if (word.match(/^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags|does|do|did|will|shall|can|might|should|would)/i)) return "verb";
-    if (index > 1 && index < correctSentence.length - 1 && !word.match(/[.!?]$/) && !word.match(/^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags|does|do|did|will|shall|can|might|should|would)/i) && word.match(/^[a-zA-Z\s]+$/)) return "object";
+    if (
+      word.match(
+        /^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags|does|do|did|will|shall|can|might|should|would)/i
+      )
+    )
+      return "verb";
+    if (
+      index > 1 &&
+      index < correctSentence.length - 1 &&
+      !word.match(/[.!?]$/) &&
+      !word.match(
+        /^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags|does|do|did|will|shall|can|might|should|would)/i
+      ) &&
+      word.match(/^[a-zA-Z\s]+$/)
+    )
+      return "object";
     if (word.match(/[.!?]$/)) return "end";
     return "other";
   };
@@ -308,11 +337,13 @@
 
     if (currentPuzzleIndex >= puzzles.length) {
       if (puzzleAttempts >= sessionLength && correctCount / puzzleAttempts >= 0.8) {
-        elements.puzzleContainer.innerHTML = "<p>Well done! You’ve mastered this level! Ready for a review?</p>";
+        elements.puzzleContainer.innerHTML =
+          "<p>Well done! You’ve mastered this level! Ready for a review?</p>";
         speak("Well done! You’ve mastered this level! Ready for a review?");
         startReviewSession();
       } else {
-        elements.puzzleContainer.innerHTML = "<p>Keep practicing! You need more tries to master this level.</p>";
+        elements.puzzleContainer.innerHTML =
+          "<p>Keep practicing! You need more tries to master this level.</p>";
         speak("Keep practicing! You need more tries to master this level.");
         generatePuzzles();
       }
@@ -390,10 +421,10 @@
         wordDiv.textContent = word;
         const isCorrect = word === puzzle.correct[index];
         wordDiv.classList.add(isCorrect ? "correct" : "incorrect");
-        wordDiv.dataset.correctWord = puzzle.correct[index]; // Store correct word for correction
+        wordDiv.dataset.correctWord = puzzle.correct[index];
         if (!isCorrect) {
-          wordDiv.style.cursor = "pointer"; // Indicate clickable
-          wordDiv.addEventListener("click", correctWord); // Add click handler for correction
+          wordDiv.style.cursor = "pointer";
+          wordDiv.addEventListener("click", correctWord);
         }
         currentDropZone.appendChild(wordDiv);
       });
@@ -413,7 +444,9 @@
     elements.progressIndicator.textContent = `Mastery Progress: ${
       puzzleAttempts > 0 ? Math.round((correctCount / puzzleAttempts) * 100) : 0
     }% (80% to advance)`;
-    elements.progressLabel.innerHTML = `<img src="images/star.png" alt="Star" class="progress-icon"> Puzzle ${currentPuzzleIndex + 1}/${sessionLength}`;
+    elements.progressLabel.innerHTML = `<img src="images/star.png" alt="Star" class="progress-icon"> Puzzle ${
+      currentPuzzleIndex + 1
+    }/${sessionLength}`;
   };
 
   // Drag-and-drop event handlers
@@ -441,17 +474,25 @@
   const handleDrop = (e) => {
     e.preventDefault();
     if (
-      (e.currentTarget.classList.contains("drop-zone") || 
-       e.currentTarget.classList.contains("word-bank")) && 
+      (e.currentTarget.classList.contains("drop-zone") ||
+        e.currentTarget.classList.contains("word-bank")) &&
       draggedItem
     ) {
       e.currentTarget.classList.remove("active");
       const placeholder = e.currentTarget.querySelector(".drop-placeholder");
-      if (placeholder && e.currentTarget.classList.contains("drop-zone")) placeholder.remove();
+      if (placeholder && e.currentTarget.classList.contains("drop-zone"))
+        placeholder.remove();
       e.currentTarget.appendChild(draggedItem);
-      gsap.fromTo(draggedItem, { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 });
+      gsap.fromTo(
+        draggedItem,
+        { scale: 0.8, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.3 }
+      );
       checkCompletion();
-      if (e.currentTarget.classList.contains("drop-zone") && e.currentTarget.children.length === 0) {
+      if (
+        e.currentTarget.classList.contains("drop-zone") &&
+        e.currentTarget.children.length === 0
+      ) {
         const newPlaceholder = document.createElement("div");
         newPlaceholder.className = "drop-placeholder";
         newPlaceholder.textContent = "Drag words here to build your sentence!";
@@ -484,13 +525,25 @@
   function updateGamificationPanel() {
     elements.xpDisplay.textContent = `XP: ${xp}`;
     elements.streakDisplay.textContent = `Streak: ${streak}`;
-    elements.badgesList.innerHTML = badges
-      .map((badge) => `<img src="images/${badge.toLowerCase().replace(" ", "-")}.png" alt="${badge}" class="badge-icon">`)
-      .join(" ") || "None";
+    elements.badgesList.innerHTML =
+      badges
+        .map(
+          (badge) =>
+            `<img src="images/${badge.toLowerCase().replace(" ", "-")}.png" alt="${badge}" class="badge-icon">`
+        )
+        .join(" ") || "None";
     localStorage.setItem("xp", xp);
     localStorage.setItem("streak", streak);
     localStorage.setItem("badges", JSON.stringify(badges));
     localStorage.setItem("lastPlayDate", today);
+    localStorage.setItem("currentLevel", currentLevel);
+  }
+
+  // NEW: Save current game state to localStorage
+  function updateLocalStorage() {
+    localStorage.setItem("xp", xp);
+    localStorage.setItem("streak", streak);
+    localStorage.setItem("badges", JSON.stringify(badges));
     localStorage.setItem("currentLevel", currentLevel);
   }
 
@@ -504,7 +557,13 @@
       confetti.className = "confetti";
       confetti.style.left = Math.random() * 100 + "vw";
       confetti.style.animationDelay = Math.random() * 2 + "s";
-      confetti.style.backgroundColor = ["#ff6f61", "#ff9f1c", "#ffcc00", "#98fb98", "#40c4ff"][Math.floor(Math.random() * 5)];
+      confetti.style.backgroundColor = [
+        "#ff6f61",
+        "#ff9f1c",
+        "#ffcc00",
+        "#98fb98",
+        "#40c4ff",
+      ][Math.floor(Math.random() * 5)];
       confettiContainer.appendChild(confetti);
     }
     setTimeout(() => confettiContainer.remove(), 5000);
@@ -512,7 +571,11 @@
 
   // Animate success message with GSAP
   function animateSuccessMessage() {
-    gsap.fromTo(elements.successMessage, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "bounce.out" });
+    gsap.fromTo(
+      elements.successMessage,
+      { scale: 0, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.6, ease: "bounce.out" }
+    );
   }
 
   // Show tooltip on hover with word role
@@ -523,11 +586,20 @@
     const role = index !== -1 ? getWordRole(word, index, puzzle.correct) : "unknown";
     let tip = "";
     switch (role) {
-      case "subject": tip = "Subject: Who does it?"; break;
-      case "verb": tip = "Verb: What happens?"; break;
-      case "object": tip = "Object: What’s it about?"; break;
-      case "end": tip = "End: This ends the sentence."; break;
-      default: tip = "Other: Part of the sentence.";
+      case "subject":
+        tip = "Subject: Who does it?";
+        break;
+      case "verb":
+        tip = "Verb: What happens?";
+        break;
+      case "object":
+        tip = "Object: What’s it about?";
+        break;
+      case "end":
+        tip = "End: This ends the sentence.";
+        break;
+      default:
+        tip = "Other: Part of the sentence.";
     }
     const tooltip = document.createElement("div");
     tooltip.textContent = tip;
@@ -544,8 +616,10 @@
     tooltip.style.top = `${rect.bottom + scrollY + 5}px`;
     tooltip.style.left = `${rect.left}px`;
     const tooltipRect = tooltip.getBoundingClientRect();
-    if (tooltipRect.right > window.innerWidth) tooltip.style.left = `${window.innerWidth - tooltipRect.width - 5}px`;
-    if (tooltipRect.bottom > window.innerHeight) tooltip.style.top = `${rect.top + scrollY - tooltipRect.height - 5}px`;
+    if (tooltipRect.right > window.innerWidth)
+      tooltip.style.left = `${window.innerWidth - tooltipRect.width - 5}px`;
+    if (tooltipRect.bottom > window.innerHeight)
+      tooltip.style.top = `${rect.top + scrollY - tooltipRect.height - 5}px`;
     document.body.appendChild(tooltip);
     e.target.addEventListener("mouseout", () => tooltip.remove(), { once: true });
   };
@@ -566,11 +640,20 @@
       const role = index !== -1 ? getWordRole(word, index, puzzle.correct) : "unknown";
       let tip = "";
       switch (role) {
-        case "subject": tip = "Subject: Who does it?"; break;
-        case "verb": tip = "Verb: What happens?"; break;
-        case "object": tip = "Object: What’s it about?"; break;
-        case "end": tip = "End: This ends the sentence."; break;
-        default: tip = "Other: Part of the sentence.";
+        case "subject":
+          tip = "Subject: Who does it?";
+          break;
+        case "verb":
+          tip = "Verb: What happens?";
+          break;
+        case "object":
+          tip = "Object: What’s it about?";
+          break;
+        case "end":
+          tip = "End: This ends the sentence.";
+          break;
+        default:
+          tip = "Other: Part of the sentence.";
       }
       const tooltip = document.createElement("div");
       tooltip.textContent = tip;
@@ -587,8 +670,10 @@
       tooltip.style.top = `${rect.bottom + scrollY + 5}px`;
       tooltip.style.left = `${rect.left}px`;
       const tooltipRect = tooltip.getBoundingClientRect();
-      if (tooltipRect.right > window.innerWidth) tooltip.style.left = `${window.innerWidth - tooltipRect.width - 5}px`;
-      if (tooltipRect.bottom > window.innerHeight) tooltip.style.top = `${rect.top + scrollY - tooltipRect.height - 5}px`;
+      if (tooltipRect.right > window.innerWidth)
+        tooltip.style.left = `${window.innerWidth - tooltipRect.width - 5}px`;
+      if (tooltipRect.bottom > window.innerHeight)
+        tooltip.style.top = `${rect.top + scrollY - tooltipRect.height - 5}px`;
       document.body.appendChild(tooltip);
       e.target.addEventListener("touchend", () => tooltip.remove(), { once: true });
     }, 500);
@@ -631,13 +716,13 @@
   const correctWord = (e) => {
     const wordDiv = e.target;
     if (!wordDiv.classList.contains("incorrect")) return;
-    const correctWord = wordDiv.dataset.correctWord;
-    wordDiv.textContent = correctWord;
+    const correctWordText = wordDiv.dataset.correctWord;
+    wordDiv.textContent = correctWordText;
     wordDiv.classList.remove("incorrect");
     wordDiv.classList.add("correct");
-    wordDiv.style.cursor = "default"; // Remove pointer cursor after correction
-    wordDiv.removeEventListener("click", correctWord); // Remove click handler
-    speak(`Corrected to "${correctWord}".`);
+    wordDiv.style.cursor = "default";
+    wordDiv.removeEventListener("click", correctWord);
+    speak(`Corrected to "${correctWordText}".`);
     const puzzle = puzzles[currentPuzzleIndex];
     puzzle.userAnswer = Array.from(currentDropZone.children).map((word) => word.textContent);
     const isNowCorrect = puzzle.userAnswer.join(" ") === puzzle.correct.join(" ");
@@ -746,8 +831,10 @@
       streak++;
       xp += 10 + (document.getElementById("timer-mode").checked ? Math.floor(timeLeft / 5) : 0);
       if (!badges.includes("First Win")) badges.push("First Win");
-      if (streak === 5 && !badges.includes("Perfect Streak 5")) badges.push("Perfect Streak 5");
-      if (score === sessionLength && !badges.includes("Level Master")) badges.push("Level Master");
+      if (streak === 5 && !badges.includes("Perfect Streak 5"))
+        badges.push("Perfect Streak 5");
+      if (score === sessionLength && !badges.includes("Level Master"))
+        badges.push("Level Master");
       document.getElementById("success-sound").play();
       speak(`Great job! The sentence is: ${puzzle.correct.join(" ")}`);
       elements.successMessage.textContent = "✓ Yay! You got it!";
@@ -760,15 +847,18 @@
       let feedback = "Oops, not quite! Click incorrect words to fix them. ";
       if (!isCorrect) feedback += "Check your word order. ";
       if (needsPunctuation) feedback += "Add a period or question mark. ";
-      if (!isCorrect && userWordsAdjusted[0] !== puzzle.correct[0]) feedback += "Start with the subject! ";
+      if (!isCorrect && userWordsAdjusted[0] !== puzzle.correct[0])
+        feedback += "Start with the subject! ";
       if (
         !isCorrect &&
         userWordsAdjusted.findIndex((w) =>
           getWordRole(w, userWordsAdjusted.indexOf(w), userWordsAdjusted) === "verb"
-        ) !== puzzle.correct.findIndex((w) =>
-          getWordRole(w, puzzle.correct.indexOf(w), puzzle.correct) === "verb"
-        )
-      ) feedback += "The verb might be misplaced! ";
+        ) !==
+          puzzle.correct.findIndex((w) =>
+            getWordRole(w, puzzle.correct.indexOf(w), puzzle.correct) === "verb"
+          )
+      )
+        feedback += "The verb might be misplaced! ";
       speak(feedback);
       elements.hint.textContent = feedback;
     }
@@ -824,12 +914,15 @@
 
   // Start a review session with mixed-level puzzles
   const startReviewSession = () => {
-    const prevLevel = ["p1", "p2", "p3", "p4", "p5"].includes(currentLevel)
-      ? currentLevel.replace(/p(\d)/, (match, p1) => `p${parseInt(p1) - 1}`)
-      : "p1";
+    // If current level is p1, remain at p1; otherwise, use previous level for review
+    const prevLevel =
+      currentLevel === "p1" ? "p1" : "p" + (parseInt(currentLevel.slice(1)) - 1);
     const prevSentences = getSentencesForLevel(prevLevel);
     const currentSentences = getSentencesForLevel(currentLevel);
-    const reviewSentences = shuffle([...prevSentences.slice(0, 3), ...currentSentences.slice(0, 7)]);
+    const reviewSentences = shuffle([
+      ...prevSentences.slice(0, 3),
+      ...currentSentences.slice(0, 7),
+    ]);
     puzzles = reviewSentences.map((sentence) => ({
       correct: sentence.split(" "),
       submitted: false,
