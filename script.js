@@ -10,6 +10,7 @@
     score: document.getElementById("score"),
     progressBar: document.getElementById("progress-bar"),
     progressLabel: document.getElementById("progress-label"),
+    progressIndicator: document.getElementById("progress-indicator"),
     xpDisplay: document.getElementById("xp-display"),
     streakDisplay: document.getElementById("streak-display"),
     badgesList: document.getElementById("badges-list"),
@@ -20,65 +21,44 @@
     hintBtn: document.getElementById("hint-btn"),
     clearBtn: document.getElementById("clear-btn"),
     learnBtn: document.getElementById("learn-btn"),
-    progressIndicator: document.getElementById("progress-indicator"),
   };
 
   // Speech Synthesis with UK Female Voice (Fallback to US/AU Female Voice)
   function speak(text) {
-    if ("speechSynthesis" in window) {
-      const ensureVoiceLoaded = new Promise((resolve) => {
-        const checkVoices = () => {
-          const voices = window.speechSynthesis.getVoices();
-          if (voices.length > 0) resolve(voices);
-          else
-            window.speechSynthesis.addEventListener(
-              "voiceschanged",
-              () => resolve(window.speechSynthesis.getVoices()),
-              { once: true }
-            );
-        };
-        checkVoices();
-      });
+    if (!("speechSynthesis" in window)) {
+      console.warn("Speech synthesis not supported on this device.");
+      return;
+    }
 
-      ensureVoiceLoaded.then((voices) => {
-        const utterance = new SpeechSynthesisUtterance(text);
-        let preferredVoice = voices.find(
-          (v) =>
-            v.name.includes("UK English Female") ||
-            (v.lang === "en-GB" && v.gender === "female")
-        );
-        if (!preferredVoice)
-          preferredVoice = voices.find(
-            (v) =>
-              (v.name.includes("US English Female") ||
-                v.name.includes("Samantha") ||
-                v.name.includes("Victoria")) &&
-              v.lang === "en-US" &&
-              v.gender === "female"
-          );
-        if (!preferredVoice)
-          preferredVoice = voices.find(
-            (v) =>
-              v.name.includes("Australian English Female") ||
-              v.name.includes("Karen") ||
-              (v.lang === "en-AU" && v.gender === "female")
-          );
-        if (!preferredVoice) {
-          preferredVoice = voices.find((v) => v.gender === "female") || voices[0];
-          console.warn(
-            "No female voice found, using default voice. Check browser voice settings."
-          );
-        }
-        utterance.voice = preferredVoice || voices[0];
-        utterance.rate = 0.9;
-        utterance.pitch = 1.1;
-        utterance.volume = 1.0;
-        window.speechSynthesis.speak(utterance);
-      });
-    } else console.warn("Speech synthesis not supported on this device.");
+    const utterance = new SpeechSynthesisUtterance(text);
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      let preferredVoice = voices.find(
+        (v) => v.lang === "en-GB" && v.name.includes("Female")
+      ) || voices.find(
+        (v) => v.lang === "en-US" && (v.name.includes("Samantha") || v.name.includes("Victoria"))
+      ) || voices.find(
+        (v) => v.lang === "en-AU" && v.name.includes("Karen")
+      ) || voices.find((v) => v.lang.includes("en"));
+      
+      utterance.voice = preferredVoice || voices[0];
+      utterance.rate = 0.9;
+      utterance.pitch = 1.1;
+      utterance.volume = 1.0;
+      window.speechSynthesis.speak(utterance);
+    };
+
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = null;
+      };
+    } else {
+      loadVoices();
+    }
   }
 
-  // Sentence pools for each level, expanded with diverse content
+  // Sentence pools for each level
   const sentencesP1 = [
     "Doreen had a huge birthday party.",
     "We can go out to play.",
@@ -162,7 +142,7 @@
 
   const sentencesP4 = [
     "The cheerful girl sings beautifully during the assembly.",
-    "The boy quickly runs to school, eager to learn.",
+    "The boy quickly runs to school eager to learn.",
     "The teacher patiently explains the lesson to her attentive students.",
     "The children happily play together in the spacious park.",
     "The shiny red car moves fast along the busy road.",
@@ -170,7 +150,7 @@
     "The elderly man walks slowly with a calm and steady pace.",
     "The smart student solves difficult problems with ease.",
     "The busy mother prepares a delicious breakfast every single morning.",
-    "The gentle wind blows softly, rustling the vibrant green leaves.",
+    "The gentle wind blows softly rustling the vibrant green leaves.",
     "The excited child jumps high in joyful celebration during recess.",
     "The kind teacher helps every student after class with care.",
     "The little girl reads a colorful book under a large shady tree.",
@@ -180,7 +160,7 @@
     "The fast train zooms past the station with remarkable speed.",
     "The playful puppy chases its tail with endless energy.",
     "The thoughtful boy generously shares his toys with his friends.",
-    "The pretty garden blooms vibrantly in early spring, showcasing many colors.",
+    "The pretty garden blooms vibrantly in early spring showcasing many colors.",
     "Nia plays a drum from her culture.",
     "Santiago flies a kite with his brother.",
     "Amina draws a picture of her family.",
@@ -188,26 +168,26 @@
   ];
 
   const sentencesP5 = [
-    "The teacher reads a fascinating story, and the children listen attentively.",
-    "The boy finished his homework before dinner, so he went outside to play.",
-    "The little girl happily skipped to school, and her friends cheered her on.",
+    "The teacher reads a fascinating story and the children listen attentively.",
+    "The boy finished his homework before dinner so he went outside to play.",
+    "The little girl happily skipped to school and her friends cheered her on.",
     "The bright sun shines over the calm sea while a gentle breeze cools the air.",
     "The busy bees buzz around the blooming flowers as the children watch in wonder.",
     "The students study in the library and take notes carefully on every detail.",
-    "The father cooks dinner, and the children eagerly help set the table.",
-    "The dog barks loudly, but the cat remains calm and sleeps peacefully.",
-    "The rain poured outside, yet the class continued their lesson indoors with focus.",
-    "The bird sings in the morning, and the flowers open gracefully to welcome the day.",
+    "The father cooks dinner and the children eagerly help set the table.",
+    "The dog barks loudly but the cat remains calm and sleeps peacefully.",
+    "The rain poured outside yet the class continued their lesson indoors with focus.",
+    "The bird sings in the morning and the flowers open gracefully to welcome the day.",
     "The boy plays soccer while his friend rides a bicycle around the field.",
-    "The teacher writes on the board, and the students copy the notes precisely.",
-    "The car stops at the red light, and the driver patiently waits for the signal.",
-    "The children laugh during recess, full of energy and joy.",
-    "The sun sets in the west, and the sky turns a beautiful shade of orange.",
-    "The little girl draws a creative picture, and her mother praises her artistic skills.",
-    "The student answers the question correctly, and the teacher smiles with pride.",
-    "The dog runs in the park, and the kids cheer excitedly during playtime.",
-    "The wind blows gently, making the leaves rustle softly in the cool breeze.",
-    "The book is open on the desk, and the student reads silently with concentration.",
+    "The teacher writes on the board and the students copy the notes precisely.",
+    "The car stops at the red light and the driver patiently waits for the signal.",
+    "The children laugh during recess full of energy and joy.",
+    "The sun sets in the west and the sky turns a beautiful shade of orange.",
+    "The little girl draws a creative picture and her mother praises her artistic skills.",
+    "The student answers the question correctly and the teacher smiles with pride.",
+    "The dog runs in the park and the kids cheer excitedly during playtime.",
+    "The wind blows gently making the leaves rustle softly in the cool breeze.",
+    "The book is open on the desk and the student reads silently with concentration.",
     "Zara sings a song from her homeland.",
     "Diego helps his dad with the garden.",
     "Leila paints a picture of her cat.",
@@ -215,26 +195,26 @@
   ];
 
   const sentencesP6 = [
-    "After finishing his homework, the student went to the library to study more in depth.",
-    "Although it was raining heavily, the children played outside happily during recess.",
-    "The teacher, known for her kindness, explained the lesson in remarkable detail.",
-    "Despite the heavy traffic, she arrived at school on time and greeted everyone warmly.",
-    "When the bell rang, the students hurried to their classrooms with eager anticipation.",
-    "Since the exam was extremely challenging, the teacher reviewed the material thoroughly afterward.",
-    "Even though it was late, the boy continued reading his favorite book with great enthusiasm.",
-    "While the sun was setting, the family enjoyed a delightful picnic in the park.",
-    "If you study hard every day, you will achieve excellent results in your exams.",
-    "After the game ended, the players celebrated their victory with cheers and applause.",
-    "Although the movie was quite long, the audience remained engaged until the very end.",
-    "Because the weather was unexpectedly cool, the picnic lasted longer than anticipated.",
-    "Since the library was exceptionally quiet, the students concentrated deeply on their research.",
-    "When the storm passed, the children went outside to play joyfully despite the damp ground.",
-    "After receiving his award, the student thanked his parents for their unwavering support.",
-    "Although she was extremely tired, the teacher continued to prepare engaging lessons for the class.",
-    "If you practice regularly, your skills will improve significantly over time with dedication.",
-    "While the bell was ringing, the students gathered in the hall to listen attentively to the announcement.",
-    "Because the assignment was particularly difficult, the students worked in groups to complete it.",
-    "After the concert ended, the crowd applauded enthusiastically as the performers took a bow.",
+    "After finishing his homework the student went to the library to study more in depth.",
+    "Although it was raining heavily the children played outside happily during recess.",
+    "The teacher known for her kindness explained the lesson in remarkable detail.",
+    "Despite the heavy traffic she arrived at school on time and greeted everyone warmly.",
+    "When the bell rang the students hurried to their classrooms with eager anticipation.",
+    "Since the exam was extremely challenging the teacher reviewed the material thoroughly afterward.",
+    "Even though it was late the boy continued reading his favorite book with great enthusiasm.",
+    "While the sun was setting the family enjoyed a delightful picnic in the park.",
+    "If you study hard every day you will achieve excellent results in your exams.",
+    "After the game ended the players celebrated their victory with cheers and applause.",
+    "Although the movie was quite long the audience remained engaged until the very end.",
+    "Because the weather was unexpectedly cool the picnic lasted longer than anticipated.",
+    "Since the library was exceptionally quiet the students concentrated deeply on their research.",
+    "When the storm passed the children went outside to play joyfully despite the damp ground.",
+    "After receiving his award the student thanked his parents for their unwavering support.",
+    "Although she was extremely tired the teacher continued to prepare engaging lessons for the class.",
+    "If you practice regularly your skills will improve significantly over time with dedication.",
+    "While the bell was ringing the students gathered in the hall to listen attentively to the announcement.",
+    "Because the assignment was particularly difficult the students worked in groups to complete it.",
+    "After the concert ended the crowd applauded enthusiastically as the performers took a bow.",
     "Anya writes a story about her travels.",
     "Mateo builds a model of a rocket.",
     "Sofia learns about her family history.",
@@ -242,7 +222,7 @@
   ];
 
   // Game state variables
-  const sessionLength = 10; // Increased to 10 for mastery
+  const sessionLength = 10;
   let puzzles = [];
   let currentPuzzleIndex = 0;
   let score = 0;
@@ -250,12 +230,11 @@
   let xp = parseInt(localStorage.getItem("xp")) || 0;
   let streak = parseInt(localStorage.getItem("streak")) || 0;
   let badges = JSON.parse(localStorage.getItem("badges")) || [];
-  let timeLeft = 30,
-    timerId = null;
+  let timeLeft = 30, timerId = null;
   let hintCount = 0;
   let currentDropZone = null;
-  let puzzleAttempts = 0; // Track total attempts for mastery
-  let correctCount = 0; // Track correct answers for mastery
+  let puzzleAttempts = 0;
+  let correctCount = 0;
   const today = new Date().toDateString();
   if (localStorage.getItem("lastPlayDate") && localStorage.getItem("lastPlayDate") !== today) {
     const yesterday = new Date();
@@ -300,40 +279,21 @@
     const totalWords = puzzles[currentPuzzleIndex].correct.length;
     const droppedWords = currentDropZone.children.length;
     elements.submitBtn.disabled = droppedWords !== totalWords;
-    elements.submitBtn.style.backgroundColor = elements.submitBtn.disabled
-      ? "#cccccc"
-      : "#4CAF50";
+    elements.submitBtn.style.backgroundColor = elements.submitBtn.disabled ? "#cccccc" : "#4CAF50";
   };
 
   // Improved function to determine the role of a word in a sentence
   const getWordRole = (word, index, correctSentence) => {
-    // Subject: First word starting with a capital letter
     if (index === 0 && /^[A-Z]/.test(word)) return "subject";
-    // Verb: Expanded list of common verbs, case-insensitive
-    if (
-      word.match(
-        /^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags|does|do|did|will|shall|can|might|should|would)/i
-      )
-    )
-      return "verb";
-    // Object: Nouns or phrases after the verb, excluding punctuation
-    if (
-      index > 1 &&
-      index < correctSentence.length - 1 &&
-      !word.match(/[.!?]$/) &&
-      !word.match(
-        /^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags|does|do|did|will|shall|can|might|should|would)/i
-      ) &&
-      word.match(/^[a-zA-Z\s]+$/)
-    )
-      return "object";
-    // End: Words with punctuation
+    if (word.match(/^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags|does|do|did|will|shall|can|might|should|would)/i)) return "verb";
+    if (index > 1 && index < correctSentence.length - 1 && !word.match(/[.!?]$/) && !word.match(/^(is|was|were|are|runs|eats|sings|sleeps|reads|writes|explained|listened|chased|had|play|draws|decided|enjoyed|prepared|helped|finished|stopped|jumps|builds|climbs|solves|shares|flies|falls|barks|purrs|rides|skips|claps|fetch|wags|does|do|did|will|shall|can|might|should|would)/i) && word.match(/^[a-zA-Z\s]+$/)) return "object";
     if (word.match(/[.!?]$/)) return "end";
     return "other";
   };
 
   // Display the current puzzle on the screen
   const displayCurrentPuzzle = () => {
+    if (!elements.puzzleContainer) return;
     elements.puzzleContainer.innerHTML = "";
     elements.hint.textContent = "";
     elements.successMessage.textContent = "";
@@ -346,16 +306,13 @@
     elements.clearBtn.style.display = "inline-block";
     elements.learnBtn.style.display = "inline-block";
 
-    // Check if the session is complete and evaluate mastery
     if (currentPuzzleIndex >= puzzles.length) {
       if (puzzleAttempts >= sessionLength && correctCount / puzzleAttempts >= 0.8) {
-        elements.puzzleContainer.innerHTML =
-          "<p>Well done! You’ve mastered this level! Ready for a review?</p>";
+        elements.puzzleContainer.innerHTML = "<p>Well done! You’ve mastered this level! Ready for a review?</p>";
         speak("Well done! You’ve mastered this level! Ready for a review?");
         startReviewSession();
       } else {
-        elements.puzzleContainer.innerHTML =
-          "<p>Keep practicing! You need more tries to master this level.</p>";
+        elements.puzzleContainer.innerHTML = "<p>Keep practicing! You need more tries to master this level.</p>";
         speak("Keep practicing! You need more tries to master this level.");
         generatePuzzles();
       }
@@ -420,12 +377,10 @@
         });
         wordBank.appendChild(wordDiv);
       });
-      if (currentDropZone.children.length === 0) {
+      if (!currentDropZone.children.length) {
         const placeholder = document.createElement("div");
         placeholder.className = "drop-placeholder";
         placeholder.textContent = "Drag words here to build your sentence!";
-        placeholder.style.color = "#666";
-        placeholder.style.fontStyle = "italic";
         currentDropZone.appendChild(placeholder);
       }
     } else {
@@ -433,7 +388,13 @@
         const wordDiv = document.createElement("div");
         wordDiv.className = "word";
         wordDiv.textContent = word;
-        wordDiv.classList.add(word === puzzle.correct[index] ? "correct" : "incorrect");
+        const isCorrect = word === puzzle.correct[index];
+        wordDiv.classList.add(isCorrect ? "correct" : "incorrect");
+        wordDiv.dataset.correctWord = puzzle.correct[index]; // Store correct word for correction
+        if (!isCorrect) {
+          wordDiv.style.cursor = "pointer"; // Indicate clickable
+          wordDiv.addEventListener("click", correctWord); // Add click handler for correction
+        }
         currentDropZone.appendChild(wordDiv);
       });
       elements.submitBtn.style.display = "none";
@@ -465,6 +426,7 @@
 
   const handleDragEnd = (e) => {
     e.target.style.opacity = "1";
+    draggedItem = null;
   };
 
   const handleDragOver = (e) => {
@@ -479,8 +441,8 @@
   const handleDrop = (e) => {
     e.preventDefault();
     if (
-      (e.currentTarget.classList.contains("drop-zone") ||
-        e.currentTarget.classList.contains("word-bank")) &&
+      (e.currentTarget.classList.contains("drop-zone") || 
+       e.currentTarget.classList.contains("word-bank")) && 
       draggedItem
     ) {
       e.currentTarget.classList.remove("active");
@@ -493,8 +455,6 @@
         const newPlaceholder = document.createElement("div");
         newPlaceholder.className = "drop-placeholder";
         newPlaceholder.textContent = "Drag words here to build your sentence!";
-        newPlaceholder.style.color = "#666";
-        newPlaceholder.style.fontStyle = "italic";
         e.currentTarget.appendChild(newPlaceholder);
       }
     }
@@ -503,18 +463,22 @@
   // Timer for timed mode
   const startTimer = () => {
     if (!document.getElementById("timer-mode").checked) return;
+    stopTimer();
     timerId = setInterval(() => {
       timeLeft--;
       elements.progress.textContent = `Puzzle ${currentPuzzleIndex + 1} of ${sessionLength} - Time: ${timeLeft}s`;
       if (timeLeft <= 0) {
-        clearInterval(timerId);
+        stopTimer();
         submitAnswer();
         nextPuzzle();
       }
     }, 1000);
   };
 
-  const stopTimer = () => clearInterval(timerId);
+  const stopTimer = () => {
+    if (timerId) clearInterval(timerId);
+    timerId = null;
+  };
 
   // Update gamification panel and save to localStorage
   function updateGamificationPanel() {
@@ -530,7 +494,7 @@
     localStorage.setItem("currentLevel", currentLevel);
   }
 
-  // Display confetti animation on success (optimized for performance)
+  // Display confetti animation on success
   function displayConfetti(count = 20) {
     const confettiContainer = document.createElement("div");
     confettiContainer.className = "confetti-container";
@@ -551,16 +515,19 @@
     gsap.fromTo(elements.successMessage, { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "bounce.out" });
   }
 
-  // Show tooltip on hover
+  // Show tooltip on hover with word role
   const showTooltip = (e) => {
-    const role = e.target.dataset.role;
+    const word = e.target.textContent;
+    const puzzle = puzzles[currentPuzzleIndex];
+    const index = puzzle.correct.indexOf(word);
+    const role = index !== -1 ? getWordRole(word, index, puzzle.correct) : "unknown";
     let tip = "";
     switch (role) {
-      case "subject": tip = "Who does it?"; break;
-      case "verb": tip = "What happens?"; break;
-      case "object": tip = "What’s it about?"; break;
-      case "end": tip = "This ends the sentence."; break;
-      default: tip = "Drag me to build the sentence! Double-click to remove or drag back to adjust.";
+      case "subject": tip = "Subject: Who does it?"; break;
+      case "verb": tip = "Verb: What happens?"; break;
+      case "object": tip = "Object: What’s it about?"; break;
+      case "end": tip = "End: This ends the sentence."; break;
+      default: tip = "Other: Part of the sentence.";
     }
     const tooltip = document.createElement("div");
     tooltip.textContent = tip;
@@ -593,14 +560,17 @@
       document.removeEventListener("touchend", touchEnd);
     };
     timer = setTimeout(() => {
-      const role = e.target.dataset.role;
+      const word = e.target.textContent;
+      const puzzle = puzzles[currentPuzzleIndex];
+      const index = puzzle.correct.indexOf(word);
+      const role = index !== -1 ? getWordRole(word, index, puzzle.correct) : "unknown";
       let tip = "";
       switch (role) {
-        case "subject": tip = "Who does it?"; break;
-        case "verb": tip = "What happens?"; break;
-        case "object": tip = "What’s it about?"; break;
-        case "end": tip = "This ends the sentence."; break;
-        default: tip = "Drag me to build the sentence! Double-tap to remove or drag back to adjust.";
+        case "subject": tip = "Subject: Who does it?"; break;
+        case "verb": tip = "Verb: What happens?"; break;
+        case "object": tip = "Object: What’s it about?"; break;
+        case "end": tip = "End: This ends the sentence."; break;
+        default: tip = "Other: Part of the sentence.";
       }
       const tooltip = document.createElement("div");
       tooltip.textContent = tip;
@@ -626,41 +596,63 @@
     document.addEventListener("touchend", touchEnd);
   };
 
-  // Placeholder for tooltip hiding (handled by event listeners)
-  const hideTooltip = () => {};
-
   // Remove a word from the drop zone and return it to the word bank
   const removeWord = (e) => {
     const word = e.target;
     const wordBank = document.querySelector(".word-bank");
+    if (!wordBank || !word.classList.contains("word")) return;
+    if (word.parentElement.classList.contains("drop-zone")) {
+      const newWord = word.cloneNode(true);
+      newWord.draggable = true;
+      newWord.addEventListener("dragstart", handleDragStart);
+      newWord.addEventListener("dragend", handleDragEnd);
+      newWord.addEventListener("mouseover", showTooltip);
+      newWord.addEventListener("mouseout", hideTooltip);
+      newWord.addEventListener("touchstart", showTouchTooltip, { passive: true });
+      newWord.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && newWord.parentElement.classList.contains("drop-zone"))
+          removeWord(e);
+      });
+      wordBank.appendChild(newWord);
+      word.classList.add("removing");
+      setTimeout(() => word.remove(), 300);
+      speak("Word removed and returned to the word bank.");
+    }
+    checkCompletion();
+    if (currentDropZone && currentDropZone.children.length === 0) {
+      const placeholder = document.createElement("div");
+      placeholder.className = "drop-placeholder";
+      placeholder.textContent = "Drag words here to build your sentence!";
+      currentDropZone.appendChild(placeholder);
+    }
+  };
+
+  // Correct a wrong word on click
+  const correctWord = (e) => {
+    const wordDiv = e.target;
+    if (!wordDiv.classList.contains("incorrect")) return;
+    const correctWord = wordDiv.dataset.correctWord;
+    wordDiv.textContent = correctWord;
+    wordDiv.classList.remove("incorrect");
+    wordDiv.classList.add("correct");
+    wordDiv.style.cursor = "default"; // Remove pointer cursor after correction
+    wordDiv.removeEventListener("click", correctWord); // Remove click handler
+    speak(`Corrected to "${correctWord}".`);
     const puzzle = puzzles[currentPuzzleIndex];
-    if (word.classList.contains("word")) {
-      if (word.parentElement.classList.contains("drop-zone")) {
-        const newWord = word.cloneNode(true);
-        newWord.draggable = true;
-        newWord.addEventListener("dragstart", handleDragStart);
-        newWord.addEventListener("dragend", handleDragEnd);
-        newWord.addEventListener("mouseover", showTooltip);
-        newWord.addEventListener("mouseout", hideTooltip);
-        newWord.addEventListener("touchstart", showTouchTooltip, { passive: true });
-        newWord.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && newWord.parentElement.classList.contains("drop-zone"))
-            removeWord(e);
-        });
-        wordBank.appendChild(newWord);
-        word.classList.add("removing");
-        setTimeout(() => word.remove(), 300);
-        speak("Word removed and returned to the word bank.");
-      }
-      checkCompletion();
-      if (word.parentElement.classList.contains("drop-zone") && word.parentElement.children.length === 0) {
-        const placeholder = document.createElement("div");
-        placeholder.className = "drop-placeholder";
-        placeholder.textContent = "Drag words here to build your sentence!";
-        placeholder.style.color = "#666";
-        placeholder.style.fontStyle = "italic";
-        word.parentElement.appendChild(placeholder);
-      }
+    puzzle.userAnswer = Array.from(currentDropZone.children).map((word) => word.textContent);
+    const isNowCorrect = puzzle.userAnswer.join(" ") === puzzle.correct.join(" ");
+    if (isNowCorrect) {
+      score++;
+      correctCount++;
+      streak++;
+      xp += 5; // Partial credit for correction
+      document.getElementById("success-sound").play();
+      speak(`Great job! The sentence is now correct: ${puzzle.correct.join(" ")}`);
+      elements.successMessage.textContent = "✓ Yay! You fixed it!";
+      animateSuccessMessage();
+      displayConfetti();
+      setTimeout(() => (elements.successMessage.textContent = ""), 3000);
+      updateGamificationPanel();
     }
   };
 
@@ -681,9 +673,6 @@
               setTimeout(() => word.classList.remove("hint-subject"), 3000);
             }
           });
-        } else {
-          elements.hint.textContent = "No subject found! Try building the sentence.";
-          speak("No subject found! Try building the sentence.");
         }
       } else if (hintCount === 1) {
         hintCount++;
@@ -700,9 +689,6 @@
               setTimeout(() => word.classList.remove("hint-verb"), 3000);
             }
           });
-        } else {
-          elements.hint.textContent = "No action word found! Check the sentence.";
-          speak("No action word found! Check the sentence.");
         }
       } else if (hintCount === 2) {
         hintCount++;
@@ -719,9 +705,6 @@
               setTimeout(() => word.classList.remove("hint-object"), 3000);
             }
           });
-        } else {
-          elements.hint.textContent = "No object found! Try building the sentence.";
-          speak("No object found! Try building the sentence.");
         }
       } else {
         elements.hint.textContent = "No more hints! You can do it!";
@@ -748,7 +731,13 @@
 
     Array.from(currentDropZone.children).forEach((wordElem, index) => {
       wordElem.classList.remove("correct", "incorrect");
-      wordElem.classList.add(wordElem.textContent === puzzle.correct[index] ? "correct" : "incorrect");
+      const isWordCorrect = wordElem.textContent === puzzle.correct[index];
+      wordElem.classList.add(isWordCorrect ? "correct" : "incorrect");
+      if (!isWordCorrect) {
+        wordElem.dataset.correctWord = puzzle.correct[index];
+        wordElem.style.cursor = "pointer";
+        wordElem.addEventListener("click", correctWord);
+      }
     });
 
     if (isCorrect && !needsPunctuation) {
@@ -768,7 +757,7 @@
     } else {
       document.getElementById("error-sound").play();
       streak = 0;
-      let feedback = "Oops, not quite! ";
+      let feedback = "Oops, not quite! Click incorrect words to fix them. ";
       if (!isCorrect) feedback += "Check your word order. ";
       if (needsPunctuation) feedback += "Add a period or question mark. ";
       if (!isCorrect && userWordsAdjusted[0] !== puzzle.correct[0]) feedback += "Start with the subject! ";
@@ -776,12 +765,10 @@
         !isCorrect &&
         userWordsAdjusted.findIndex((w) =>
           getWordRole(w, userWordsAdjusted.indexOf(w), userWordsAdjusted) === "verb"
-        ) !==
-          puzzle.correct.findIndex((w) =>
-            getWordRole(w, puzzle.correct.indexOf(w), puzzle.correct) === "verb"
-          )
-      )
-        feedback += "The verb might be misplaced! ";
+        ) !== puzzle.correct.findIndex((w) =>
+          getWordRole(w, puzzle.correct.indexOf(w), puzzle.correct) === "verb"
+        )
+      ) feedback += "The verb might be misplaced! ";
       speak(feedback);
       elements.hint.textContent = feedback;
     }
@@ -874,35 +861,33 @@
 
   // Clear the drop zone and return words to the word bank
   const clearDropZone = () => {
-    if (currentDropZone) {
-      const wordBank = document.querySelector(".word-bank");
-      Array.from(currentDropZone.children).forEach((word) => {
-        if (word.classList.contains("word")) {
-          const newWord = word.cloneNode(true);
-          newWord.draggable = true;
-          newWord.addEventListener("dragstart", handleDragStart);
-          newWord.addEventListener("dragend", handleDragEnd);
-          newWord.addEventListener("mouseover", showTooltip);
-          newWord.addEventListener("mouseout", hideTooltip);
-          newWord.addEventListener("touchstart", showTouchTooltip, { passive: true });
-          newWord.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && newWord.parentElement.classList.contains("drop-zone"))
-              removeWord(e);
-          });
-          wordBank.appendChild(newWord);
-          word.classList.add("removing");
-          setTimeout(() => word.remove(), 300);
-        }
-      });
-      const placeholder = document.createElement("div");
-      placeholder.className = "drop-placeholder";
-      placeholder.textContent = "Drag words here to build your sentence!";
-      placeholder.style.color = "#666";
-      placeholder.style.fontStyle = "italic";
-      currentDropZone.appendChild(placeholder);
-      checkCompletion();
-      speak("Drop zone cleared. Words returned to the word bank.");
-    }
+    if (!currentDropZone) return;
+    const wordBank = document.querySelector(".word-bank");
+    if (!wordBank) return;
+    Array.from(currentDropZone.children).forEach((word) => {
+      if (word.classList.contains("word")) {
+        const newWord = word.cloneNode(true);
+        newWord.draggable = true;
+        newWord.addEventListener("dragstart", handleDragStart);
+        newWord.addEventListener("dragend", handleDragEnd);
+        newWord.addEventListener("mouseover", showTooltip);
+        newWord.addEventListener("mouseout", hideTooltip);
+        newWord.addEventListener("touchstart", showTouchTooltip, { passive: true });
+        newWord.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && newWord.parentElement.classList.contains("drop-zone"))
+            removeWord(e);
+        });
+        wordBank.appendChild(newWord);
+        word.classList.add("removing");
+        setTimeout(() => word.remove(), 300);
+      }
+    });
+    const placeholder = document.createElement("div");
+    placeholder.className = "drop-placeholder";
+    placeholder.textContent = "Drag words here to build your sentence!";
+    currentDropZone.appendChild(placeholder);
+    checkCompletion();
+    speak("Drop zone cleared. Words returned to the word bank.");
   };
 
   // Toggle fullscreen mode
@@ -912,11 +897,9 @@
   };
 
   // Event listeners for interactive elements
-  document
-    .getElementById("listen-instructions-btn")
-    .addEventListener("click", () =>
-      speak(document.querySelector("p.instructions").textContent)
-    );
+  document.getElementById("listen-instructions-btn").addEventListener("click", () =>
+    speak(document.querySelector("p.instructions").textContent)
+  );
   elements.hintBtn.addEventListener("click", showHint);
   elements.submitBtn.addEventListener("click", submitAnswer);
   elements.tryAgainBtn.addEventListener("click", tryAgain);
