@@ -39,8 +39,9 @@
   <main class="game-container" id="game-container">
     <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite"></section>
     <section id="progress-bar-container">
-      <div id="progress-bar"><span id="progress-label"><img src="images/star.png" alt="Star" class="progress-icon"> Puzzle 1/5</span></div>
+      <div id="progress-bar"><span id="progress-label"><img src="images/star.png" alt="Star" class="progress-icon"> Puzzle 1/10</span></div>
     </section>
+    <section id="progress-indicator">Mastery Progress: 0% (80% to advance)</section>
     <section id="gamification-panel">
       <p id="xp-display">XP: 0</p>
       <p id="streak-display">Streak: 0</p>
@@ -53,6 +54,7 @@
       <button id="try-again-btn" style="display: none;" aria-label="Try Again">Try Again</button>
       <button id="next-btn" aria-label="Next Puzzle">Next</button>
       <button id="clear-btn" aria-label="Clear Drop Zone">Clear</button>
+      <button id="learn-btn" aria-label="Learn Sentence Basics">Learn</button>
     </nav>
     <div class="feedback">
       <p id="progress"></p>
@@ -63,8 +65,8 @@
     <button id="reset-btn" aria-label="Start Over">Start Over</button>
   </main>
 
-  <audio id="success-sound" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
-  <audio id="error-sound" src="https://www.soundjay.com/buttons/beep-02.mp3" preload="auto"></audio>
+  <audio id="success-sound" src="/sounds/success.mp3" preload="auto"></audio>
+  <audio id="error-sound" src="/sounds/error.mp3" preload="auto"></audio>
   <script src="script.js" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
