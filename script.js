@@ -489,7 +489,9 @@
             currentWordDiv.classList.remove('incorrect');
             currentWordDiv.classList.add('correct');
             gsap.fromTo(currentWordDiv, { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.5 });
-            speak(`Corrected to: ${correctWord} at position ${index + 1}.`);
+            // Simplified speech to just read the correct sentence
+            speak(`${puzzle.correct.join(' ')}`);
+            // Keep the detailed feedback in the UI for visual reference
             this.elements.hint.textContent = `Corrected to: ${correctWord} at position ${index + 1}. The right order is ${puzzle.correct.join(' ')}.`;
           }
         });
