@@ -1,36 +1,41 @@
-'use strict';
+// Basic service worker to cache assets for offline use
+const CACHE_NAME = 'word-order-adventure-v1';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/script.js',
+  '/manifest.json',
+  '/images/icon-192.png',
+  '/images/icon-512.png',
+  '/images/mascot.png',
+  '/images/star.png',
+  '/images/success.mp3',
+  '/images/error.mp3'
+];
 
-(() => {
-  const elements = {
-    puzzleContainer: document.getElementById("puzzle-container"),
-    hint: document.getElementById("hint"),
-    successMessage: document.getElementById("success-message"),
-    progress: document.getElementById("progress"),
-    score: document.getElementById("score"),
-    progressBar: document.getElementById("progress-bar"),
-    progressLabel: document.getElementById("progress-label"),
-    xpDisplay: document.getElementById("xp-display"),
-    streakDisplay: document.getElementById("streak-display"),
-    badgesList: document.getElementById("badges-list"),
-    submitBtn: document.getElementById("submit-btn"),
-    tryAgainBtn: document.getElementById("try-again-btn")
-  };
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
+  );
+});
 
-  // Speech API Utility
-  function speak(text) {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      const setVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
-        let preferredVoice = voices.find(v => v.name.includes("Google US English")) || 
-                            voices.find(v => v.lang === "en-US" && v.name.includes("Natural")) || 
-                            voices[0];
-        utterance.voice = preferredVoice;
-      };
-      if (window.speechSynthesis.getVoices().length) setVoice();
-      else window.speechSynthesis.addEventListener('voiceschanged', setVoice, { once: true });
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      window.speechSynthesis.speak(utterance);
-    }
-  }
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+      );
+    })
+  );
+});
