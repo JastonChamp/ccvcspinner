@@ -13,9 +13,9 @@
   --dropzone-active-bg: #b0e0e6;
   --progress-bar-bg: linear-gradient(to right, #4CAF50, #98fb98);
   --progress-bar-height: 20px;
-  --hint-subject-bg: #98fb98; /* Green for subject */
-  --hint-verb-bg: #ff9f1c; /* Orange for verb */
-  --hint-object-bg: #40c4ff; /* Blue for object */
+  --hint-subject-bg: #98fb98;
+  --hint-verb-bg: #ff9f1c;
+  --hint-object-bg: #40c4ff;
 }
 
 body.light-theme {
@@ -46,8 +46,7 @@ body {
       var(--background-color),
       #add8e6
     ),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><circle cx='10' cy='10' r='2' fill='rgba(255,255,255,0.3)'/></svg>")
-      repeat;
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><circle cx='10' cy='10' r='2' fill='rgba(255,255,255,0.3)'/></svg>") repeat;
   color: var(--text-color);
   display: flex;
   flex-direction: column;
@@ -230,15 +229,14 @@ h1 {
   margin: 10px 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 20px; /* Increased gap for better spacing */
+  gap: 20px;
   transition: background-color 0.3s, border-color 0.3s;
 }
 
 .drop-zone.active {
   background-color: var(--dropzone-active-bg);
   border-color: var(--primary-color);
-  box-shadow: 0 0 15px var(--primary-color),
-    inset 0 0 5px var(--primary-color);
+  box-shadow: 0 0 15px var(--primary-color), inset 0 0 5px var(--primary-color);
 }
 
 .drop-placeholder {
@@ -424,7 +422,7 @@ h1 {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Add animation for word removal */
+/* Animation for word removal */
 @keyframes bounceOut {
   0% {
     transform: scale(1);
