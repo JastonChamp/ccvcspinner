@@ -1,23 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Word Order Adventure</title>
-  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="styles.css?v=12">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="styles.css?v=12" />
 </head>
 <body>
   <header>
     <h1>Word Order Adventure</h1>
     <p class="instructions">
-      Drag the words below to make a sentence or question!<br>
-      Start with a capital letter and end with a full stop or question mark.<br>
+      Drag the words below to make a sentence or question!<br />
+      Start with a capital letter and end with a full stop or question mark.<br />
       <span style="font-size: 0.8em; color: var(--accent-color);">(Tap and hold on phones)</span>
     </p>
     <div class="mascot-container">
-      <img src="images/mascot.png" alt="Friendly Flower Mascot" id="mascot">
+      <img src="images/mascot.png" alt="Friendly Flower Mascot" id="mascot" />
     </div>
     <div class="controls">
       <label for="level-select">Pick Your Level:</label>
@@ -29,17 +32,21 @@
         <option value="p5">Primary 5</option>
         <option value="p6">Primary 6</option>
       </select>
-      <label><input type="checkbox" id="timer-mode"> Timer Mode (30s)</label>
+      <label><input type="checkbox" id="timer-mode" /> Timer Mode (30s)</label>
       <button id="listen-instructions-btn" class="instruction-btn" aria-label="Hear Instructions">Hear Instructions</button>
       <button id="fullscreen-btn" class="instruction-btn" aria-label="Toggle Fullscreen">Fullscreen</button>
       <button id="theme-toggle" class="instruction-btn" aria-label="Toggle Theme">Change Theme</button>
     </div>
   </header>
-  
+
   <main class="game-container" id="game-container">
     <section id="puzzle-container" role="region" aria-label="Current Puzzle" aria-live="polite"></section>
     <section id="progress-bar-container">
-      <div id="progress-bar"><span id="progress-label"><img src="images/star.png" alt="Star" class="progress-icon"> Puzzle 1/10</span></div>
+      <div id="progress-bar">
+        <span id="progress-label">
+          <img src="images/star.png" alt="Star" class="progress-icon" /> Puzzle 1/10
+        </span>
+      </div>
     </section>
     <section id="progress-indicator">Mastery Progress: 0% (80% to advance)</section>
     <section id="gamification-panel">
@@ -80,8 +87,8 @@
         }
       };
       document.body.appendChild(script);
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/service-worker.js')
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/service-worker.js")
           .then(() => console.log("Service Worker registered"))
           .catch(err => console.error("Service Worker registration failed:", err));
       }
