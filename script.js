@@ -57,7 +57,7 @@
     }
   }
 
-  // NEW: Hide tooltip function to remove any lingering tooltips
+  // Hide tooltip helper
   const hideTooltip = (e) => {
     const tooltip = document.querySelector(".word-tooltip");
     if (tooltip) {
@@ -237,8 +237,7 @@
   let xp = parseInt(localStorage.getItem("xp")) || 0;
   let streak = parseInt(localStorage.getItem("streak")) || 0;
   let badges = JSON.parse(localStorage.getItem("badges")) || [];
-  let timeLeft = 30,
-    timerId = null;
+  let timeLeft = 30, timerId = null;
   let hintCount = 0;
   let currentDropZone = null;
   let puzzleAttempts = 0;
@@ -297,7 +296,7 @@
       : "#4CAF50";
   };
 
-  // Improved function to determine the role of a word in a sentence
+  // Determine the role of a word in a sentence
   const getWordRole = (word, index, correctSentence) => {
     if (index === 0 && /^[A-Z]/.test(word)) return "subject";
     if (
@@ -521,7 +520,7 @@
     timerId = null;
   };
 
-  // Update gamification panel and save to localStorage
+  // Update gamification panel and save state to localStorage
   function updateGamificationPanel() {
     elements.xpDisplay.textContent = `XP: ${xp}`;
     elements.streakDisplay.textContent = `Streak: ${streak}`;
@@ -539,7 +538,7 @@
     localStorage.setItem("currentLevel", currentLevel);
   }
 
-  // NEW: Save current game state to localStorage
+  // Save current game state to localStorage
   function updateLocalStorage() {
     localStorage.setItem("xp", xp);
     localStorage.setItem("streak", streak);
@@ -712,7 +711,7 @@
     }
   };
 
-  // Correct a wrong word on click
+  // Correct a wrong word on click (updated: no individual correction audio)
   const correctWord = (e) => {
     const wordDiv = e.target;
     if (!wordDiv.classList.contains("incorrect")) return;
@@ -722,7 +721,7 @@
     wordDiv.classList.add("correct");
     wordDiv.style.cursor = "default";
     wordDiv.removeEventListener("click", correctWord);
-    speak(`Corrected to "${correctWordText}".`);
+    // Now, if the sentence becomes correct, read out the full correct sentence
     const puzzle = puzzles[currentPuzzleIndex];
     puzzle.userAnswer = Array.from(currentDropZone.children).map((word) => word.textContent);
     const isNowCorrect = puzzle.userAnswer.join(" ") === puzzle.correct.join(" ");
@@ -732,6 +731,7 @@
       streak++;
       xp += 5; // Partial credit for correction
       document.getElementById("success-sound").play();
+      // Read out the complete correct sentence
       speak(`Great job! The sentence is now correct: ${puzzle.correct.join(" ")}`);
       elements.successMessage.textContent = "✓ Yay! You fixed it!";
       animateSuccessMessage();
@@ -915,14 +915,10 @@
   // Start a review session with mixed-level puzzles
   const startReviewSession = () => {
     // If current level is p1, remain at p1; otherwise, use previous level for review
-    const prevLevel =
-      currentLevel === "p1" ? "p1" : "p" + (parseInt(currentLevel.slice(1)) - 1);
+    const prevLevel = currentLevel === "p1" ? "p1" : "p" + (parseInt(currentLevel.slice(1)) - 1);
     const prevSentences = getSentencesForLevel(prevLevel);
     const currentSentences = getSentencesForLevel(currentLevel);
-    const reviewSentences = shuffle([
-      ...prevSentences.slice(0, 3),
-      ...currentSentences.slice(0, 7),
-    ]);
+    const reviewSentences = shuffle([...prevSentences.slice(0, 3), ...currentSentences.slice(0, 7)]);
     puzzles = reviewSentences.map((sentence) => ({
       correct: sentence.split(" "),
       submitted: false,
