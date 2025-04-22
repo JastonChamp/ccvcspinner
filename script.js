@@ -1,278 +1,245 @@
-// script.js
 "use strict";
 (() => {
   // ——————————————————————————————————————————————————————————
   // 1. DOM refs
   const elements = {
     puzzleContainer: document.getElementById("puzzle-container"),
-    progressBarFill: document.getElementById("progress-bar-fill"),
-    xpDisplay: document.getElementById("xp-display"),
-    streakDisplay: document.getElementById("streak-display"),
-    badgesList: document.getElementById("badges-list"),
-    submitBtn: document.getElementById("submit-btn"),
-    prevBtn: document.getElementById("prev-btn"),
-    nextBtn: document.getElementById("next-btn"),
-    hintBtn: document.getElementById("hint-btn"),
-    clearBtn: document.getElementById("clear-btn"),
-    learnBtn: document.getElementById("learn-btn"),
-    levelSelect: document.getElementById("level-select"),
-    timerToggle: document.getElementById("timer-mode"),
-    listenBtn: document.getElementById("listen-instructions-btn"),
-    fullscreenBtn: document.getElementById("fullscreen-btn"),
-    themeBtn: document.getElementById("theme-toggle"),
-    resetBtn: document.getElementById("reset-btn"),
-    successSound: document.getElementById("success-sound"),
-    errorSound: document.getElementById("error-sound"),
-    hintText: document.getElementById("hint"),
-    successMessage: document.getElementById("success-message"),
+    progressFill:   document.getElementById("progress-bar-fill"),
+    xpDisplay:      document.getElementById("xp-display"),
+    streakDisplay:  document.getElementById("streak-display"),
+    badgesList:     document.getElementById("badges-list"),
+    hintText:       document.getElementById("hint"),
+    successMsg:     document.getElementById("success-message"),
+    submitBtn:      document.getElementById("submit-btn"),
+    prevBtn:        document.getElementById("prev-btn"),
+    nextBtn:        document.getElementById("next-btn"),
+    hintBtn:        document.getElementById("hint-btn"),
+    clearBtn:       document.getElementById("clear-btn"),
+    learnBtn:       document.getElementById("learn-btn"),
+    levelSelect:    document.getElementById("level-select"),
+    timerToggle:    document.getElementById("timer-mode"),
+    listenBtn:      document.getElementById("listen-instructions-btn"),
+    fullscreenBtn:  document.getElementById("fullscreen-btn"),
+    themeBtn:       document.getElementById("change-theme-btn"),
+    resetBtn:       document.getElementById("reset-btn"),
+    successSound:   document.getElementById("success-sound"),
+    errorSound:     document.getElementById("error-sound")
   };
 
   // ——————————————————————————————————————————————————————————
-  // 2. Game state
-  const sessionLength = 10;
-  let puzzles = [];
-  let currentPuzzleIndex = 0;
-  let xp = parseInt(localStorage.getItem("xp")) || 0;
-  let streak = parseInt(localStorage.getItem("streak")) || 0;
-  let badges = JSON.parse(localStorage.getItem("badges")) || [];
+  // 2. State
+  const SESSION_LENGTH = 10;
+  let puzzles = [], idx = 0, timerId = null, hintCount = 0;
+  let xp = +localStorage.getItem("xp")     || 0;
+  let streak = +localStorage.getItem("streak") || 0;
+  let badges = JSON.parse(localStorage.getItem("badges")||"[]");
   let currentLevel = localStorage.getItem("currentLevel") || "p3";
-  let timerId = null;
-  let hintCount = 0;
 
   // ——————————————————————————————————————————————————————————
-  // 3. Sentence pools
-  const sentencesP1 = [
-    "Doreen had a huge birthday party.",
-    "We can go out to play.",
-    "The boy was chased by a dog.",
-    "Would you like to have lunch now?",
-    "I love to draw colorful pictures.",
-    // …and so on up to 24…
-  ];
-  const sentencesP2 = sentencesP1, sentencesP3 = sentencesP1;
-  const sentencesP4 = sentencesP1, sentencesP5 = sentencesP1;
-  const sentencesP6 = sentencesP1;
+  // 3. Sentences
+  const SENTS = {
+    p1: [ /* …24 sentences… */ ],
+    p2: [], p3: [], p4: [], p5: [], p6: []
+  };
+  // Fill p2–p6 with p1 for demo:
+  SENTS.p2 = [...SENTS.p1];
+  SENTS.p3 = [...SENTS.p1];
+  SENTS.p4 = [...SENTS.p1];
+  SENTS.p5 = [...SENTS.p1];
+  SENTS.p6 = [...SENTS.p1];
 
   // ——————————————————————————————————————————————————————————
   // 4. Helpers
-  const shuffle = (arr) => arr.sort(() => Math.random() - 0.5);
-  const saveState = () => {
+  const shuffle = a => a.sort(() => Math.random()-0.5);
+  const save = () => {
     localStorage.setItem("xp", xp);
     localStorage.setItem("streak", streak);
     localStorage.setItem("badges", JSON.stringify(badges));
     localStorage.setItem("currentLevel", currentLevel);
   };
+  function speak(txt) {
+    if (!speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(txt);
+    const v = speechSynthesis.getVoices().find(v=>v.lang==="en-GB");
+    if (v) u.voice = v;
+    u.rate=0.9; u.pitch=1.1;
+    speechSynthesis.speak(u);
+  }
 
-  function speak(text) {
-    if (!window.speechSynthesis) return;
-    const u = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    u.voice = voices.find(v => v.lang === "en-GB") || voices[0];
-    u.rate = 0.9; u.pitch = 1.1;
-    window.speechSynthesis.speak(u);
+  // Micro‑confetti
+  function launchConfetti() {
+    for (let i=0; i<12; i++) {
+      const d = document.createElement("div");
+      d.className = "confetti";
+      d.style.setProperty("--dx", (Math.random()-0.5)*200 + "px");
+      d.style.setProperty("--dy", (Math.random()-0.5)*200 + "px");
+      document.body.appendChild(d);
+      d.onanimationend = () => d.remove();
+    }
   }
 
   // ——————————————————————————————————————————————————————————
-  // 5. Progress bar & ARIA
-  function updateProgressUI() {
-    const current = currentPuzzleIndex + 1;
-    const pct = Math.round((current / sessionLength) * 100);
-    elements.progressBarFill.style.width = `${pct}%`;
-    const bar = document.getElementById("progress-bar-container");
-    bar.setAttribute("aria-valuenow", current);
-    bar.setAttribute("aria-valuemax", sessionLength);
+  // 5. Progress UI
+  function updateProgress() {
+    const pct = Math.round(((idx+1)/SESSION_LENGTH)*100);
+    elements.progressFill.style.width = pct + "%";
   }
 
   // ——————————————————————————————————————————————————————————
-  // 6. Generate & render puzzles
-  function generatePuzzles() {
-    const pool = { p1: sentencesP1, p2: sentencesP2, p3: sentencesP3,
-                   p4: sentencesP4, p5: sentencesP5, p6: sentencesP6 }[currentLevel];
-    puzzles = shuffle([...pool]).slice(0, sessionLength).map(s => ({
-      correct: s.split(" "),
-      submitted: false,
-      attempts: 0
-    }));
-    currentPuzzleIndex = 0;
-    hintCount = 0;
-    renderPuzzle();
-    updateProgressUI();
-    updateGamificationPanel();
+  // 6. Generate puzzles
+  function genPuzzles() {
+    const pool = SENTS[currentLevel];
+    puzzles = shuffle([...pool]).slice(0, SESSION_LENGTH)
+      .map(s => ({ correct: s.split(" "), attempts: 0 }));
+    idx = 0; hintCount = 0;
+    renderPuzzle(); updateProgress(); updateGamify();
   }
 
+  // ——————————————————————————————————————————————————————————
+  // 7. Render puzzle
   function renderPuzzle() {
-    // Clear
     clearInterval(timerId);
     elements.puzzleContainer.innerHTML = "";
     elements.submitBtn.disabled = true;
     elements.hintText.textContent = "";
-    elements.successMessage.textContent = "";
+    elements.successMsg.textContent = "";
 
-    // Build UI
-    const pz = puzzles[currentPuzzleIndex];
-    const container = document.createElement("div");
-    container.className = "sentence-container";
-
+    const pz = puzzles[idx];
     // Header
     const h3 = document.createElement("h3");
-    h3.textContent = `Puzzle ${currentPuzzleIndex+1} of ${sessionLength}`;
-    container.appendChild(h3);
+    h3.textContent = `Puzzle ${idx+1} of ${SESSION_LENGTH}`;
+    elements.puzzleContainer.appendChild(h3);
 
     // Word bank
-    const bank = document.createElement("div");
-    bank.className = "word-bank";
+    const bank = document.createElement("div"); bank.className = "word-bank";
     shuffle([...pz.correct]).forEach(w => {
       const d = document.createElement("div");
-      d.className = "word";
-      d.textContent = w;
-      d.draggable = true;
-      d.addEventListener("dragstart", () => dragged = d);
-      d.addEventListener("touchstart", () => dragged = d, {passive:true});
+      d.className = "word"; d.textContent = w; d.draggable = true;
+      d.addEventListener("dragstart", ()=>dragged = d);
       bank.appendChild(d);
     });
-    container.appendChild(bank);
+    elements.puzzleContainer.appendChild(bank);
 
     // Drop zone
-    const drop = document.createElement("div");
-    drop.className = "drop-zone";
-    drop.innerHTML = `<div class="drop-placeholder">Drag words here to build your sentence!</div>`;
-    drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("active"); });
-    drop.addEventListener("dragleave", () => drop.classList.remove("active"));
-    drop.addEventListener("drop", e => {
-      e.preventDefault();
-      drop.classList.remove("active");
-      if (drop.querySelector(".drop-placeholder")) drop.querySelector(".drop-placeholder").remove();
-      drop.appendChild(dragged);
-      gsap.fromTo(dragged, {scale:1.2}, {scale:1,duration:0.2});
-      dragged = null;
-      elements.submitBtn.disabled = drop.children.length !== pz.correct.length;
+    const drop = document.createElement("div"); drop.className="drop-zone";
+    drop.innerHTML=`<div class="drop-placeholder">Drag words here…</div>`;
+    drop.addEventListener("dragover", e=>{e.preventDefault();drop.classList.add("active")});
+    drop.addEventListener("dragleave", ()=>drop.classList.remove("active"));
+    drop.addEventListener("drop", e=>{
+      e.preventDefault(); drop.classList.remove("active");
+      const ph = drop.querySelector(".drop-placeholder"); if(ph) ph.remove();
+      drop.appendChild(dragged); gsap.fromTo(dragged,{scale:1.2},{scale:1,duration:0.2});
+      dragged=null;
+      elements.submitBtn.disabled = drop.children.length!==pz.correct.length;
     });
-    container.appendChild(drop);
-    elements.puzzleContainer.appendChild(container);
+    elements.puzzleContainer.appendChild(drop);
 
-    // Timer
+    // Timer (optional)
     if (elements.timerToggle.checked) {
-      let timeLeft = 30;
-      timerId = setInterval(() => {
-        timeLeft--;
-        if (timeLeft <= 0) { clearInterval(timerId); submitAnswer(); }
-      }, 1000);
+      let t=30;
+      timerId=setInterval(()=>{
+        if(--t<=0){ clearInterval(timerId); checkAnswer(); }
+      },1000);
     }
   }
 
   // ——————————————————————————————————————————————————————————
-  // 7. Gamification panel
-  function updateGamificationPanel() {
-    elements.xpDisplay.textContent = xp;
+  // 8. Gamify UI
+  function updateGamify() {
+    elements.xpDisplay.textContent     = xp;
     elements.streakDisplay.textContent = streak;
-    elements.badgesList.textContent = badges.length ? badges.join(" ") : "None";
-    saveState();
+    elements.badgesList.textContent    = badges.join(", ")||"None";
+    save();
   }
 
   // ——————————————————————————————————————————————————————————
-  // 8. Submit & check
-  function submitAnswer() {
+  // 9. Check answer
+  function checkAnswer() {
     clearInterval(timerId);
-    const pz = puzzles[currentPuzzleIndex];
+    const drop = document.querySelector(".drop-zone");
+    const pz   = puzzles[idx];
     pz.attempts++;
-    const dropChildren = Array.from(document.querySelector(".drop-zone").children);
-    const userWords = dropChildren.map(d => d.textContent);
-    pz.submitted = true;
+    const user = Array.from(drop.children).map(d=>d.textContent);
+    const norm = user.map((w,i)=>i===0?w.charAt(0).toUpperCase()+w.slice(1):w);
+    const correct = norm.join(" ")===pz.correct.join(" ");
 
-    // Normalize
-    if (userWords[0]) userWords[0] = userWords[0][0].toUpperCase() + userWords[0].slice(1);
-    const isCorrect = userWords.join(" ") === pz.correct.join(" ");
-
-    // Mark each
-    dropChildren.forEach((d,i) => {
+    // Mark tiles
+    Array.from(drop.children).forEach((d,i)=>{
       d.classList.remove("correct","incorrect");
-      if (d.textContent === pz.correct[i]) d.classList.add("correct");
+      if (d.textContent===pz.correct[i]) d.classList.add("correct");
       else {
         d.classList.add("incorrect");
-        d.addEventListener("click", correctWord);
+        d.addEventListener("click", fixWord);
       }
     });
 
-    if (isCorrect) {
-      xp += 10; streak++;
-      if (!badges.includes("First Win")) badges.push("First Win");
-      elements.successMessage.textContent = "✓ Yay! You got it!";
+    if (correct) {
+      xp+=10; streak++; if(!badges.includes("First Win")) badges.push("First Win");
+      elements.successMsg.textContent="🎉 Correct!";
       elements.successSound.play();
-      document.querySelector(".drop-zone").classList.add("glow");
-      setTimeout(() => document.querySelector(".drop-zone").classList.remove("glow"), 1000);
+      gsap.fromTo(".drop-zone",{y:-10},{y:0,duration:0.6,stagger:0.1,ease:"bounce.out"});
+      launchConfetti();
     } else {
-      streak = 0;
-      elements.hintText.textContent = "Oops! Click incorrect words to fix them.";
+      streak=0;
+      elements.hintText.textContent="Oops—tap red words to fix!";
       elements.errorSound.play();
+      gsap.fromTo(".drop-zone",{x:-5},{x:5,duration:0.1,repeat:5,yoyo:true});
     }
-    updateGamificationPanel();
-    updateProgressUI();
+    updateGamify(); updateProgress();
   }
 
-  function correctWord(e) {
+  function fixWord(e) {
     const d = e.target;
-    const pz = puzzles[currentPuzzleIndex];
-    d.textContent = pz.correct[ Array.from(d.parentNode.children).indexOf(d) ];
+    const pz = puzzles[idx];
+    const i = Array.from(d.parentNode.children).indexOf(d);
+    d.textContent = pz.correct[i];
     d.classList.replace("incorrect","correct");
-    d.removeEventListener("click", correctWord);
-    // Auto‑check full correct
-    if ( Array.from(d.parentNode.children).every((c,i)=> c.textContent === pz.correct[i]) ) {
-      submitAnswer();
+    d.removeEventListener("click", fixWord);
+    // If fully correct now:
+    if ( Array.from(d.parentNode.children).every((c,j)=> c.textContent===pz.correct[j]) ) {
+      checkAnswer();
     }
   }
 
   // ——————————————————————————————————————————————————————————
-  // 9. Navigation & controls
+  // 10. Navigation
   let dragged = null;
-  elements.nextBtn.addEventListener("click", () => {
-    if (currentPuzzleIndex < sessionLength - 1) {
-      currentPuzzleIndex++;
-      renderPuzzle();
-    } else {
-      generatePuzzles();
-    }
+  elements.submitBtn.addEventListener("click", checkAnswer);
+  elements.nextBtn.addEventListener("click", ()=>{
+    idx = (idx+1<SESSION_LENGTH?idx+1:0);
+    renderPuzzle(); updateProgress(); updateGamify();
   });
-  elements.prevBtn.addEventListener("click", () => {
-    if (currentPuzzleIndex > 0) {
-      currentPuzzleIndex--;
-      renderPuzzle();
-    }
+  elements.prevBtn.addEventListener("click", ()=>{
+    idx = idx>0?idx-1:0;
+    renderPuzzle(); updateProgress(); updateGamify();
   });
-  elements.clearBtn.addEventListener("click", renderPuzzle);
-  elements.hintBtn.addEventListener("click", () => {
+  elements.clearBtn.addEventListener("click", ()=>renderPuzzle());
+  elements.hintBtn.addEventListener("click", ()=>{
     hintCount++;
-    const subj = puzzles[currentPuzzleIndex].correct[0];
-    elements.hintText.textContent = `Hint: the subject is “${subj}.”`;
+    const subj = puzzles[idx].correct[0];
+    elements.hintText.textContent = `Hint: Subject = "${subj}"`;
   });
-  elements.learnBtn.addEventListener("click", () => {
-    elements.puzzleContainer.innerHTML = `
-      <h3>Learn Sentence Basics</h3>
-      <p>A sentence = <strong>Subject</strong> + <strong>Verb</strong> + (<strong>Object</strong>).</p>
+  elements.learnBtn.addEventListener("click", ()=>{
+    elements.puzzleContainer.innerHTML=`
+      <h3>Learn: Subject + Verb (+Object)</h3>
+      <p>Example: <strong>The dog runs fast.</strong></p>
     `;
   });
 
   // Settings
-  elements.levelSelect.addEventListener("change", e => {
-    currentLevel = e.target.value;
-    generatePuzzles();
-  });
-  elements.resetBtn.addEventListener("click", generatePuzzles);
-  elements.listenBtn.addEventListener("click", () =>
-    speak(document.querySelector(".instructions").textContent)
-  );
-  elements.fullscreenBtn.addEventListener("click", () => {
+  elements.levelSelect.addEventListener("change", e=>{ currentLevel=e.target.value; genPuzzles(); });
+  elements.resetBtn.addEventListener("click", genPuzzles);
+  elements.listenBtn.addEventListener("click", ()=>speak(
+    "Drag the words below to make a sentence. Start with capital and end with a full stop or question mark."
+  ));
+  elements.fullscreenBtn.addEventListener("click", ()=>{
     document.fullscreenElement 
       ? document.exitFullscreen() 
       : document.documentElement.requestFullscreen();
   });
-  elements.themeBtn.addEventListener("click", () =>
-    document.body.classList.toggle("dark-theme")
-  );
-  elements.submitBtn.addEventListener("click", submitAnswer);
+  elements.themeBtn.addEventListener("click", ()=>document.body.classList.toggle("dark-theme"));
 
   // ——————————————————————————————————————————————————————————
-  // 10. Init
-  document.addEventListener("DOMContentLoaded", () => {
-    generatePuzzles();
-  });
+  // 11. Init
+  document.addEventListener("DOMContentLoaded", genPuzzles);
 })();
