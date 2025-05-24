@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Word Order Adventure</title>
-  <!-- Fonts -->
   <link
     href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Nunito:wght@400;700&display=swap"
     rel="stylesheet"
@@ -13,24 +12,21 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- Slim Header -->
   <header class="app-header">
     <div class="header-inner">
       <h1 class="header-title">Word Order Adventure</h1>
       <div class="header-controls">
-        <label>
-          Level
-          <select id="level-select" class="select">
-            <option value="p1">P1</option>
-            <option value="p2">P2</option>
-            <option value="p3" selected>P3</option>
-            <option value="p4">P4</option>
-            <option value="p5">P5</option>
-            <option value="p6">P6</option>
-          </select>
-        </label>
+        <label for="level-select">Level</label>
+        <select id="level-select" class="select">
+          <option value="p1">P1</option>
+          <option value="p2">P2</option>
+          <option value="p3" selected>P3</option>
+          <option value="p4">P4</option>
+          <option value="p5">P5</option>
+          <option value="p6">P6</option>
+        </select>
         <label class="checkbox-label">
-          <input type="checkbox" id="timer-mode" />
+          <input type="checkbox" id="timer-mode" aria-label="Enable Timer Mode" />
           Timer Mode
         </label>
         <button id="listen-instructions-btn" class="btn btn-primary" aria-label="Hear Instructions">
@@ -39,21 +35,19 @@
         <button id="fullscreen-btn" class="btn btn-primary" aria-label="Toggle Fullscreen">
           Fullscreen
         </button>
-        <button id="theme-toggle" class="btn btn-secondary" aria-label="Change Theme">
+        <button id="theme-toggle" class="btn btn-secondary" aria-label="Toggle Dark Theme">
           Change Theme
         </button>
       </div>
     </div>
     <p class="instructions">
-      Drag the words below to make a sentence or question.&nbsp;
-      Start with a capital letter and end with . or ?&nbsp;
+      Drag the words below to make a sentence or question. 
+      Start with a capital letter and end with . or ? 
       <span class="instructions-sub">Tap and hold on phones</span>
     </p>
   </header>
 
-  <!-- Main Game Area -->
   <main class="game-container" id="game-container">
-    <!-- Progress Bar -->
     <div
       id="progress-bar-container"
       role="progressbar"
@@ -66,20 +60,14 @@
       <span id="progress-label" class="visually-hidden">Puzzle 1 of 10</span>
     </div>
 
-    <!-- Puzzle -->
     <section id="puzzle-container" role="region" aria-live="polite"></section>
 
-    <!-- Gamification Panel -->
     <section class="gamification-panel" aria-label="Your progress so far">
       <div class="gp-item">XP: <span id="xp-display">0</span></div>
       <div class="gp-item">Streak: <span id="streak-display">0</span></div>
-      <div class="gp-item">
-        Badges:
-        <span id="badges-list">None</span>
-      </div>
+      <div class="gp-item">Badges: <span id="badges-list">None</span></div>
     </section>
 
-    <!-- Controls -->
     <nav class="nav-buttons" aria-label="Puzzle controls">
       <button id="prev-btn" class="btn btn-primary">Back</button>
       <button id="hint-btn" class="btn btn-secondary">Get a Hint</button>
@@ -89,21 +77,17 @@
       <button id="learn-btn" class="btn btn-secondary">Learn</button>
     </nav>
 
-    <!-- Feedback -->
     <div class="feedback" aria-live="assertive">
       <p id="hint" class="feedback-text"></p>
       <p id="success-message" class="feedback-success"></p>
     </div>
 
-    <!-- Reset -->
     <button id="reset-btn" class="btn btn-accent">Start Over</button>
   </main>
 
-  <!-- Sounds -->
   <audio id="success-sound" src="/sounds/success.mp3" preload="auto"></audio>
   <audio id="error-sound" src="/sounds/error.mp3" preload="auto"></audio>
 
-  <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="script.js" defer></script>
 </body>
